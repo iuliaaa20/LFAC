@@ -21,14 +21,15 @@ void yyerror(const char * s);
 
 /* cuv cheie*/
 %token BGIN END 
-%token CLASS_BC PUBLIC_BC SECRET_SANTA 
+%token CLASS_BC PUBLIC_BC SECRET_SANTA NEW_BC
+%token FN_BC
 %token IF_BC ELSE_BC WHILE_BC RETURN_BC PRINT_BC
 
 /*tipuri de date:*/
 %token <Str> INT_BC FLOAT_BC STRING_BC BOOL_BC VOID_BC
 
 /* valori si identificatori */
-%token <Str> ID_BC STRING_VAL BOOL_VAL_BC NR FLOAT_NR
+%token <Str> ID_BC STRING_VAL BOOL_VAL_BC NR FLOAT_NR   ACCES
 
 %token ASSIGN_GIFT 
 %token EQ_GIFTS NEQ_GIFTS LE_GIFTS GE_GIFTS LT GT
@@ -43,10 +44,11 @@ void yyerror(const char * s);
 %left LT GT LE_GIFTS GE_GIFTS 
 %left '+' '-' 
 %left '*' '/'
+%left ACCES
 
 %%
 
-progr : orice main { 
+progr : orice main_bc { 
             std::cout << "Sintaxa este corecta. (Mos Craciun a ajuns)" << std::endl;
         }
       ;
@@ -54,28 +56,28 @@ progr : orice main {
 
 orice : orice elem
       | 
-        ;
+      ;
 
 elem  : decl
       | class_decl
       | fn_decl
       ;
 
-type : INT_BC | FLOAT_BC | STRING_BC | BOOL_BC ;
+type : INT_BC 
+     | FLOAT_BC
+     | STRING_BC 
+     | BOOL_BC ;
 
 
 
-
-/* o singura declaratie:  */
-decl : type ID_BC ';' 
+decl : type list_variabile ';'
      ;
 
-classes :classes class_decl
-        | 
-        ;
+list_variabile : list_variabile ',' ID_BC 
+               | ID_BC;
 
 
-class_decl : CLASS_BC ID_BC '{' class_body '}' 
+class_decl : CLASS_BC ID_BC '[' class_body ']' 
            ;
 
 class_body : class_body restr decl      
@@ -88,15 +90,10 @@ restr      : PUBLIC_BC
            |
            ;
 
-functions : functions fn_decl
-          | 
-          ;
-
-
 return_type : type | VOID_BC ;
 
-/* Antet + Corp */
-fn_decl : return_type ID_BC '(' list_param ')' '{' fn_body '}'
+
+fn_decl : FN_BC return_type ID_BC '^' list_param '^' '[' fn_body ']'
           ;
 
 list_param : param
@@ -107,19 +104,22 @@ list_param : param
 param : type ID_BC 
       ;
 
-/*  Variabilele locale doar la inceput, apoi instructiuni. */
-fn_body : declarations statement_list 
-        ;
 
-/* begin_xmas ... end_xmas */
+fn_body : declarations statement_list ;
 
-main : BGIN statement_list END 
+declarations : declarations decl
+             | 
+             ;
+
+
+main_bc : BGIN statement_list END 
            ;
 
 statement_list : 
                | statement_list statement
                ;
 
+/* !!!! Irina, sa tii cont ca ai si campuri de obiecte si creari de obiecte(NEW) la expresii*/ 
 statement : /*de completat*/
         
 e: /*de completat*/
