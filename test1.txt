@@ -1,0 +1,55 @@
+class Copil [
+     str_letter nume;
+     int_gift varsta;
+    bool cuminte;
+]
+
+float_snow bugetMosCraciun;
+int_gift pretCadou;
+
+int_gift iulia;
+int_gift irina;
+
+bool poateCumpara;
+
+elf bool verificaFonduri ^ float_snow buget, int_gift pret ^ [
+    if (buget >= pret) {
+        return nice;
+    } else {
+        return naughty;
+    }
+]
+int_gift putemCumpara;
+
+begin_xmas
+
+bugetMosCraciun = 500.50;
+pretCadou = 150;
+
+iulia = create_gift Copil;
+irina = create_gift Copil;
+
+iulia->nume = "Iulia Darie";
+iulia->varsta = 20;
+iulia->cuminte=nice;
+
+Print("Verificare lista Mos Craciun pentru:");
+Print(iulia -> nume);
+
+if (iulia -> cuminte == nice) {
+        Print("Copilul a fost cuminte! Verificam bugetul...");
+        putemCumpara = verificaFonduri(bugetMosCraciun, pretCadou);
+        if (putemCumpara == nice) {
+            bugetMosCraciun = bugetMosCraciun - pretCadou;
+            Print("Cadou achizitionat! Jucaria pleaca spre sanie.");
+            Print("Buget ramas la Polul Nord:");
+            Print(bugetMosCraciun);
+        } else {
+            Print("Eroare: Mosul a ramas fara fonduri magice.");
+        }
+
+    } else {
+        Print("Copilul a fost rau. Primeste un sac de carbuni.");
+    }
+
+end_xmas
