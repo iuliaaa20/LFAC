@@ -1,0 +1,49 @@
+class Copil [
+     str_letter nume;
+     int_gift varsta;
+     bool cuminte;
+  
+    elf int_gift sub10ani ^ int_gift varsta, float_snow buget ^
+    [ if(varsta<10)
+        {return nice;}
+        else {return naughty;}
+
+    ]
+]
+
+float_snow bugetMosCraciun;
+int_gift pretCadou;
+create_gift Copil iulia;
+create_gift Copil irina;
+str_letter help;
+int_gift x;
+
+
+bool poateCumpara;
+
+elf bool verificaFonduri ^ float_snow buget, int_gift pret ^ [
+    if (buget >= pret) {
+        return nice;
+    } else {
+        return naughty;
+    }
+]
+int_gift putemCumpara;
+bool goodkid;
+
+begin_xmas
+
+bugetMosCraciun = 500.50+iulia->nume+verificaFonduri(bugetMosCraciun,putemCumpara);
+pretCadou = 150;
+help="SaveTheChristmas";
+
+
+
+Print(iulia->sub10ani);
+
+Print("Verificare lista Mos Craciun pentru:");
+Print(iulia -> nume);
+while(x==2) {
+Print("yay");
+}
+end_xmas
