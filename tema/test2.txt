@@ -1,0 +1,77 @@
+//model dat de gemini ca sa testam chestii
+int_gift scor_global;
+float_snow temperatura;
+str_letter nume_elf;
+bool este_craciun;
+
+class FabricaJucarii [
+    int_gift numar_jucarii;
+    str_letter tip_jucarie;
+
+
+    elf int_gift adauga_stoc ^ int_gift cantitate ^ [
+        int_gift stoc_nou;
+        
+        stoc_nou = cantitate + 10;
+        return stoc_nou;
+    ]
+]
+
+elf int_gift calculeaza_necesar ^ int_gift copii, int_gift jucarii_per_copil ^ [
+    int_gift total;
+    total = copii * jucarii_per_copil;
+    return total;
+]
+
+
+begin_xmas
+    
+    scor_global = 100;
+    temperatura = 12.5;
+    nume_elf = "Alabaster Snowball";
+    //este_craciun = nice;  !!!! AICI NU MERGE SA ASIGNAM ASA !!!!! si ar trb ceva la reguli cred ca sa nu dea conflicte gen reduce/reduce
+    // nice = true
+
+    temperatura = temperatura - 2.5;
+
+     if (este_craciun == nice) {
+        Print(nume_elf);; }
+
+   
+    int_gift rezultat;
+    rezultat = calculeaza_necesar(10, 2); 
+    
+    create_gift FabricaJucarii fabricaMea;
+    
+    fabricaMea -> numar_jucarii = 500;
+    
+    int_gift stoc_calculat;
+    stoc_calculat = fabricaMea -> adauga_stoc(5);
+
+    Print(stoc_calculat);;
+
+    // Eroare 1: Variabila nedeclarata
+    x = 10;
+
+    // Eroare 2: Atribuire tipuri incompatibile (int = string)
+    // scor_global = "text gresit";
+
+    // Eroare 3: Adunare tipuri diferite (int + float)
+    // scor_global = scor_global + temperatura;
+
+    // Eroare 4: Functie cu numar gresit de argumente (asteapta 2, primeste 1)
+    // rezultat = calculeaza_necesar(5);
+
+    // Eroare 5: Functie cu tip gresit de argument (asteapta int, primeste string)
+    // rezultat = calculeaza_necesar(10, "doi");
+
+    // Eroare 6: Membru inexistent in clasa
+    // fabricaMea -> variabila_inexistenta = 1;
+
+    // Eroare 7: Metoda inexistenta in clasa
+    // fabricaMea -> zboara();
+
+    // Eroare 8: Metoda existenta dar parametri gresiti
+    // stoc_calculat = fabricaMea -> adauga_stoc(nice);
+
+end_xmas

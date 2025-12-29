@@ -21,7 +21,7 @@ void yyerror(const char * s); //functia standard pt erori de sintaxa
 //tokens 
 %token BGIN END CLASS_BC  NEW_BC FN_BC ACCES
 %token IF_BC ELSE_BC WHILE_BC RETURN_BC PRINT_BC 
-%token ASSIGN_GIFT ATELIER_AND_COR DECORATIUNI_OR_COLINDE EQ_GIFTS NEQ_GIFTS LE_GIFTS GE_GIFTS LT GT NOT_BC
+%token ASSIGN_GIFT ATELIER_AND_COR DECORATIUNI_OR_COLINDE EQ_GIFTS NEQ_GIFTS LE_GIFTS GE_GIFTS LT_GIFTS GT_GIFTS NOT_BC
 
 //tokeni care au si valoare (numele lor sau valoarea numerica, retinuta in Str):
 %token <Str> INT_BC FLOAT_BC STRING_BC BOOL_BC 
@@ -30,12 +30,13 @@ void yyerror(const char * s); //functia standard pt erori de sintaxa
 // aici ii spunem ca regulile 'type' si 'return_type' returneaza un pointer la string (<Str>)
 // asta ne permite sa folosim $$ = ... in ele si *$2 in regulile parinte fara sa primim erori de compilare
 %type <Str> type return_type 
+%type <Str> e e_bool call_fn
 
 //prioritate operatori :
 %left DECORATIUNI_OR_COLINDE  
 %left ATELIER_AND_COR         
 %left EQ_GIFTS NEQ_GIFTS      
-%left LT GT LE_GIFTS GE_GIFTS 
+%left LT_GIFTS GT_GIFTS LE_GIFTS GE_GIFTS 
 %left '+' '-' 
 %left '*' '/'
 %left ACCES
@@ -86,6 +87,8 @@ list_variabile : ID_BC { SymTableHelp::AddVar(*$1, "variabila"); }
 class_decl : CLASS_BC ID_BC { 
                 SymTableHelp::AddVar(*$2, "clasa");        
                 SymTableHelp::EnterScope("Class_" + *$2);  
+                //salvam scope ul curent in map cu cheia numelui clasei
+                SymTableHelp::AddClassScope(*$2, SymTableHelp::currentScope);
              } 
              '[' class_body ']' { 
                 SymTableHelp::ExitScope();                
@@ -134,8 +137,29 @@ statement_list :
 
 
 // folosim CheckId pentru a verifica daca variabilele au fost declarate inainte de utilizare
-statement : ID_BC ASSIGN_GIFT e ';' { SymTableHelp::CheckId(*$1); }
-          | ID_BC ACCES ID_BC ASSIGN_GIFT e ';' { SymTableHelp::CheckId(*$1); }
+statement : ID_BC ASSIGN_GIFT e ';' { SymTableHelp::CheckId(*$1); 
+          string tipSt=SymTableHelp::GetType(*$1);
+          string tipDr=*$3;
+
+          if(tipSt!=tipDr && tipDr!="eroare"){
+            std::cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui valoarea de tip "<<tipDr<<" variabilei "<<*$1<<" de tip "<<tipSt<<endl;
+
+          }
+          delete $3;
+          }
+          | ID_BC ACCES ID_BC ASSIGN_GIFT e ';' { 
+            SymTableHelp::CheckId(*$1); 
+            if(SymTableHelp::CheckClassMember(*$1,*$3)){
+              string tipMembru=SymTableHelp::GetClassMemberType(*$1,*$3);
+              string tipE=*$5;
+
+              if(tipMembru!=tipE && tipE!="eroare"){
+                cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui "<<tipE<<" campului "<<*$3<<" ("<<tipMembru<<")"<<endl;
+              }
+            }
+            delete $5;
+            
+            }
           | IF_BC '(' e_bool ')' '{' statement_list '}'
           | IF_BC '(' e_bool ')' '{' statement_list '}' ELSE_BC '{' statement_list '}'
           | WHILE_BC '(' e_bool ')' '{' statement_list '}'
@@ -144,45 +168,280 @@ statement : ID_BC ASSIGN_GIFT e ';' { SymTableHelp::CheckId(*$1); }
           |RETURN_BC e_bool ';'
           ;
 
-e_bool: e EQ_GIFTS e 
-  | e NEQ_GIFTS e 
-  | e LE_GIFTS e 
-  | e GE_GIFTS e 
-  | e LT e 
-  | e GT e
-  | '(' e_bool ')'
-  | e_bool  EQ_GIFTS e_bool
-  | e_bool NEQ_GIFTS e_bool
-  | e_bool ATELIER_AND_COR e_bool
-  | e_bool DECORATIUNI_OR_COLINDE e_bool 
-  | BOOL_VAL_BC
-  | NOT_BC e_bool
+e_bool: e EQ_GIFTS e {
+        if(*$1 != *$3 && *$1 != "eroare" && *$3 != "eroare") {
+            cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << *$1 << " == " << *$3 << ")" << endl;
+            $$=new std::string("eroare");
+        }
+        else{
+        $$=new std::string("bool");
+        }
+        delete $1; delete $3;
+      }
+  | e NEQ_GIFTS e {
+        if(*$1 != *$3 && *$1 != "eroare" && *$3 != "eroare") {
+            cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << *$1 << " == " << *$3 << ")" << endl;
+            $$=new std::string("eroare");
+        }
+        else{
+          $$=new std::string("bool");
+        }        
+        delete $1; delete $3;}
+  | e LE_GIFTS e {
+    if(*$1 != *$3){
+      if (*$1 != "eroare" && *$3 != "eroare") {
+      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
+      }$$=new std::string("eroare");
+    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
+       $$=new std::string("eroare");
+    }
+      else
+      {$$=new std::string("bool");}
+      delete $1; delete $3;
+    }    
+  | e GE_GIFTS e {
+    if(*$1 != *$3){
+      if (*$1 != "eroare" && *$3 != "eroare") {
+      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
+      }$$=new std::string("eroare");
+    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
+       $$=new std::string("eroare");
+    }
+      else
+      {$$=new std::string("bool");}
+      delete $1; delete $3;
+    }    
+  | e LT_GIFTS e {
+    if(*$1 != *$3){
+      if (*$1 != "eroare" && *$3 != "eroare") {
+      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
+      }$$=new std::string("eroare");
+    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
+       $$=new std::string("eroare");
+    }
+      else
+      {$$=new std::string("bool");}
+      delete $1; delete $3;
+    }    
+  | e GT_GIFTS e {
+    if(*$1 != *$3){
+      if (*$1 != "eroare" && *$3 != "eroare") {
+      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
+      }$$=new std::string("eroare");
+    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
+       $$=new std::string("eroare");
+    }
+      else
+      {$$=new std::string("bool");}
+      delete $1; delete $3;
+    }    
+  | '(' e_bool ')' {$$=$2;}
+  | e_bool  EQ_GIFTS e_bool{
+    if (*$1 == "eroare" || *$3 == "eroare") {
+          $$ = new std::string("eroare");
+      } else {
+        $$ = new std::string("bool");
+      }
+    delete $1; delete $3;
+
+  }
+  | e_bool NEQ_GIFTS e_bool{
+    if (*$1 == "eroare" || *$3 == "eroare") {
+          $$ = new std::string("eroare");
+      } else {
+        $$ = new std::string("bool");
+      }
+    delete $1; delete $3;
+
+  }
+  | e_bool ATELIER_AND_COR e_bool{ //gemini zice ca stim sigur ca sunt valori booleene deci nu mai verificam astea
+      $$ = new std::string("bool"); 
+      delete $1; delete $3;
+  }
+  | e_bool DECORATIUNI_OR_COLINDE e_bool {
+    $$ = new std::string("bool"); 
+    delete $1; delete $3;
+  }
+  | BOOL_VAL_BC {$$=new std::string("bool");}
+  | NOT_BC e_bool {$$=$2;}
   ;
 
 
-e : e '+' e
-  | e '-' e 
-  | e '*' e  
-  | e '/' e  
-  | '(' e ')'
-  | NR 
-  | FLOAT_NR 
-  | STRING_VAL 
-  | ID_BC { SymTableHelp::CheckId(*$1); }  
-  | ID_BC ACCES ID_BC
-  | call_fn
+e : e '+' e {
+      std::string tipSt=*$1;
+      std::string tipDr=*$3;
+
+      if(tipSt==tipDr)
+      {
+        if(tipSt== "int_gift" || tipSt=="float_snow"){
+          $$=new std::string(tipSt);      
+        }
+        else{
+        std::cout<<"Eroare semantica, linia "<< yylineno <<": Adunarea nu este permisa pentru tipul "<<tipSt;
+        $$=new string("eroare");      
+        }
+      }else{
+        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa adunarea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
+        $$=new std::string("eroare");
+      }
+
+      delete $1;
+      delete $3;
+}
+  | e '-' e {
+      std::string tipSt=*$1;
+      std::string tipDr=*$3;
+
+      if(tipSt==tipDr)
+      {
+        if(tipSt== "int_gift" || tipSt=="float_snow"){
+          $$=new std::string(tipSt);      
+        }
+        else{
+        std::cout<<"Eroare semantica, linia "<< yylineno <<": Scaderea nu este permisa pentru tipul "<<tipSt;
+        $$=new string("eroare");      
+        }
+      }else{
+        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa scaderea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
+        $$=new std::string("eroare");
+      }
+
+      delete $1;
+      delete $3;
+  }
+  | e '*' e {
+      std::string tipSt=*$1;
+      std::string tipDr=*$3;
+
+      if(tipSt==tipDr)
+      {
+        if(tipSt== "int_gift" || tipSt=="float_snow"){
+          $$=new std::string(tipSt);      
+        }
+        else{
+        std::cout<<"Eroare semantica, linia "<< yylineno <<": Inmultirea nu este permisa pentru tipul "<<tipSt;
+        $$=new string("eroare");      
+        }
+      }else{
+        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa inmultirea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
+        $$=new std::string("eroare");
+      }
+
+      delete $1;
+      delete $3;
+      } 
+  | e '/' e {
+      std::string tipSt=*$1;
+      std::string tipDr=*$3;
+
+      if(tipSt==tipDr)
+      {
+        if(tipSt== "int_gift" || tipSt=="float_snow"){
+          $$=new std::string(tipSt);      
+        }
+        else{
+        std::cout<<"Eroare semantica, linia "<< yylineno <<": Impartirea nu este permisa pentru tipul "<<tipSt;
+        $$=new string("eroare");      
+        }
+      }else{
+        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa impartirea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
+        $$=new std::string("eroare");
+      }
+
+      delete $1;
+      delete $3;
+      } 
+  | '(' e ')' {$$=$2;}
+  | NR  {$$=new std::string("int_gift");}
+  | FLOAT_NR {$$=new std::string("float_snow");}
+  | STRING_VAL {$$=new std::string("str_letter");}
+  | ID_BC { 
+        if(SymTableHelp::CheckId(*$1))
+        {
+          $$=new std::string(SymTableHelp::GetType(*$1));
+        }
+        else{
+          $$=new std::string("eroare");
+        }
+        }  
+  | ID_BC ACCES ID_BC {
+    SymTableHelp::CheckId(*$1);
+    //verificam existenta membrului in clasa
+    if(SymTableHelp::CheckClassMember(*$1,*$3)){
+      $$=new std::string(SymTableHelp::GetClassMemberType(*$1,*$3));
+    }
+    else{
+      $$=new std::string("eroare");
+    }
+  }
+  | call_fn { $$=$1;} //returnam tipul returnat de functie
   ;
 
-//(momentan verificam doar daca numele functiei exista)
 //verificarea parametrilor la apel tre sa o facem la analiza semantica
-call_fn: ID_BC '(' wishlist ')' { SymTableHelp::CheckId(*$1); }
-       | ID_BC '(' ')' { SymTableHelp::CheckId(*$1); }
-       | ID_BC ACCES ID_BC '(' wishlist ')'
-       | ID_BC ACCES ID_BC '(' ')'
+call_fn: ID_BC '(' {SymTableHelp::ClearCallArg(); } wishlist ')' { 
+      bool exists=SymTableHelp::CheckId(*$1); 
+      bool checkParams=SymTableHelp::CheckFunctionCall(*$1);
+
+      if(exists && checkParams){
+        //cazul in care fct exista si are parametri buni: returnam tipul returnat de functie
+        $$=new std::string(SymTableHelp::GetType(*$1));
+      }
+      else{
+        $$=new std::string("eroare");
+      }
+
+
+      }
+       | ID_BC '(' ')' { 
+            SymTableHelp::ClearCallArg();
+
+            bool exists=SymTableHelp::CheckId(*$1); 
+            bool checkParams=SymTableHelp::CheckFunctionCall(*$1);
+            
+            if(exists && checkParams){
+              $$=new std::string(SymTableHelp::GetType(*$1));
+            }
+            else{
+              $$=new std::string("eroare");
+            }
+            }
+       | ID_BC ACCES ID_BC '('{SymTableHelp::ClearCallArg();} wishlist ')'{
+            //verificam obiectul si metoda
+            if(SymTableHelp::CheckId(*$1)){
+              if(SymTableHelp::CheckClassMethodCall(*$1,*$3)){
+                $$=new std::string(SymTableHelp::GetClassMemberType(*$1,*$3));         
+
+              }else{
+                yyerror("Eroare semantica: Metoda nu exista in clasa obiectului sau argumentele sunt gresite");
+                $$=new std::string("eroare");
+              }
+          }
+          else{
+            $$=new std::string("eroare");
+          }
+          }
+       | ID_BC ACCES ID_BC '(' ')'{
+        if(SymTableHelp::CheckId(*$1)){
+          SymTableHelp::ClearCallArg(); //buffer gol fiindca nu avem argumente
+          if(SymTableHelp::CheckClassMethodCall(*$1,*$3)){
+            $$=new std::string(SymTableHelp::GetClassMemberType(*$1,*$3));
+          }
+          else{
+            $$=new std::string("eroare");
+          }
+        }
+        else{
+          $$=new std::string("eroare");
+        }
+       }
        ;
 
-wishlist : e 
-         |  wishlist ',' e 
+wishlist : e {SymTableHelp::AddCallArg(*$1);}
+         |  wishlist ',' e {SymTableHelp::AddCallArg(*$3);}
          ; 
 
 

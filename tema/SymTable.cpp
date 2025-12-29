@@ -93,6 +93,20 @@ void SymTable::print(ofstream& file) {
 
 }
 
+string SymTable::getType(string name){
+    IdInfo* id = findId(name);
+    if(id!=NULL)
+    return id->type;
+    return "eroare";
+}
+
+vector<string> SymTable::getParams(string name){
+    IdInfo* id=findId(name);
+    if(id!=NULL && id->kind == "functie")
+    {return id->paramTypes;}
+    return vector<string>(); // vector gol daca nu e functie sau nu exista
+}
+
 SymTable::~SymTable() {
     ids.clear();
 }

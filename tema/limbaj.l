@@ -29,7 +29,7 @@
     return BOOL_VAL_BC; 
 }
 "not"   {return NOT_BC;}
-[a-zA-Z][a-zA-Z0-9]* { 
+[a-zA-Z][a-zA-Z0-9_]* { 
     yylval.Str = new std::string(yytext); 
     return ID_BC; 
 }
@@ -39,8 +39,8 @@
 "!="    { return NEQ_GIFTS; }
 "<="    { return LE_GIFTS; }
 ">="    { return GE_GIFTS; }
-"<"     { return LT;  }
-">"     { return GT;  }
+"<"     { return LT_GIFTS;  }
+">"     { return GT_GIFTS;  }
 "->"    { return ACCES; }
 
 

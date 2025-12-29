@@ -60,7 +60,8 @@ public:
     IdInfo* findId(string name); //il gaseste
     SymTable* getPred();//functie care ma ajuta sa merg si in scope-urile parinte ca sa caut variabile
     void print(ofstream& file); //e pentru a printa tabele de simboluri(Se cere in enuntul temei)
-
+    string getType(string name); //ne da tipul variabilei ca sa putem sa facem verificari semantice
+    vector<string> getParams(string name); // returnează lista de tipuri pentru parametri
     ~SymTable();
 };
 
