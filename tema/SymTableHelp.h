@@ -1,6 +1,6 @@
 #pragma once
 #include "SymTable.h"
-#include <map>
+
 
 //scopul acestei clase este sa lucram direct cu ea in fisierul bison fiindca profa vrea sa avem cat mai putin cod scris in c++ in fisierul limbaj.y
 // aici cumva manevram un obiect de tipul SymTable si setam totul. functiile si variabilele sunt statice pentru a putea lucra cu ele direct in limbaj.y, 

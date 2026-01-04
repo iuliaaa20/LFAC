@@ -66,7 +66,7 @@ SymTable* SymTable::getPred() {
 void SymTable::print(ofstream& file) {
     file << "Scope: " << scopeName << endl;
     if (pred) {
-        file << "Parent: " << pred->scopeName << endl;
+        file << "  Parent: " << pred->scopeName << endl;
     }
     
     if (ids.empty()) {
@@ -74,10 +74,10 @@ void SymTable::print(ofstream& file) {
     } else {
         for ( auto& pair : ids) {
             IdInfo& info = pair.second;
-            file << "  Name: " << info.name 
-                 << " | Kind: " << info.kind 
-                 << " | Type: " << info.type 
-                 << " | Val: ";
+            file << "   Name: " << info.name 
+                 << "  | Kind: " << info.kind 
+                 << "  | Type: " << info.type 
+                 << "  | Val: ";
              //aici afisam valoarea lor(trebuie sa fac cu case pentru tip fiindca orice id contine toate tipurile de val(int,float,string,bool) 
            // dar are informatie adevarata doar in variabila(ival,fval,etc) potrivita:
             switch (info.value.tip) {

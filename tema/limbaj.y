@@ -1,38 +1,46 @@
 %{
 #include <iostream>
 #include <string>
+#include <vector>
+
 #include "SymTableHelp.h"  
+#include "AST.h"
 
 using namespace std;
 
-//declaratii externe pentru a lega yacc-ul de lexer
 extern int yylex();
 extern int yylineno;
 extern char* yytext; 
-extern FILE* yyin; //asta i pointerul cu care umbla lexul prin programul care se compileaza
-void yyerror(const char * s); //functia standard pt erori de sintaxa
+extern FILE* yyin; 
+void yyerror(const char * s); 
 
 %}
 
+/* Blocul code requires este necesar pentru ca header-ul sa stie de vector si ASTNode */
+%code requires {
+    #include <vector>
+    #include "AST.h"
+}
+
 %union {
     std::string* Str;
-}; //momentan folosim doar string pointer pentru a plimba numele si tipurile
+    class ASTNode* Node;           
+    std::vector<class ASTNode*>* List;
+}; 
 
-//tokens 
 %token BGIN END CLASS_BC  NEW_BC FN_BC ACCES
 %token IF_BC ELSE_BC WHILE_BC RETURN_BC PRINT_BC 
 %token ASSIGN_GIFT ATELIER_AND_COR DECORATIUNI_OR_COLINDE EQ_GIFTS NEQ_GIFTS LE_GIFTS GE_GIFTS LT_GIFTS GT_GIFTS NOT_BC
 
-//tokeni care au si valoare (numele lor sau valoarea numerica, retinuta in Str):
 %token <Str> INT_BC FLOAT_BC STRING_BC BOOL_BC 
 %token <Str> ID_BC STRING_VAL BOOL_VAL_BC NR FLOAT_NR 
 
-// aici ii spunem ca regulile 'type' si 'return_type' returneaza un pointer la string (<Str>)
-// asta ne permite sa folosim $$ = ... in ele si *$2 in regulile parinte fara sa primim erori de compilare
+/* Definim tipurile returnate de neterminali */
 %type <Str> type return_type 
-%type <Str> e e_bool call_fn
+%type <Node> e e_bool call_fn statement 
+%type <List> statement_list 
 
-//prioritate operatori :
+
 %left DECORATIUNI_OR_COLINDE  
 %left ATELIER_AND_COR         
 %left EQ_GIFTS NEQ_GIFTS      
@@ -49,10 +57,10 @@ void yyerror(const char * s); //functia standard pt erori de sintaxa
 
 progr : { SymTableHelp::Init(); } orice main_bc { 
             cout << "Sintaxa corecta. Mos Craciun a ajuns" << endl;
-            SymTableHelp::Clean(); //la final curatam memoria si inchidem fisierul
+            SymTableHelp::Clean(); 
         }
       ; 
-//regula recursiva pentru blocul global 
+
 orice: orice elem 
       |
       ;
@@ -62,14 +70,11 @@ elem : decl
      | fn_decl 
      ;
 
-
-//1. Seteaza tipul curent in SymTableHelp (pt declaratii de variabile simple)
-//2. Returneaza string-ul tipului prin $$ (pt a fi folosit mai sus in header_fn sau params)
 type : INT_BC    { SymTableHelp::SetType("int_gift");   $$ = new std::string("int_gift"); }
      | FLOAT_BC  { SymTableHelp::SetType("float_snow"); $$ = new std::string("float_snow"); }
      | STRING_BC { SymTableHelp::SetType("str_letter"); $$ = new std::string("str_letter"); }
      | BOOL_BC   { SymTableHelp::SetType("bool");       $$ = new std::string("bool"); }
-     | NEW_BC ID_BC {    SymTableHelp::SetType(*$2);  $$ = new std::string(*$2); //propag numele clasei mai departe
+     | NEW_BC ID_BC {    SymTableHelp::SetType(*$2);  $$ = new std::string(*$2); 
  } 
      ; 
  
@@ -77,17 +82,15 @@ return_type : type ;
 
 decl : type list_variabile ';' ;
 
-//adaugam variabile in scope-ul curent 
 list_variabile : ID_BC { SymTableHelp::AddVar(*$1, "variabila"); }
                | list_variabile ',' ID_BC { SymTableHelp::AddVar(*$3, "variabila"); }
                ;
 
 
-//cand intalnesc o clasa, intru in scope-ul ei, parsez corpul, si apoi ies
 class_decl : CLASS_BC ID_BC { 
                 SymTableHelp::AddVar(*$2, "clasa");        
                 SymTableHelp::EnterScope("Class_" + *$2);  
-                //salvam scope ul curent in map cu cheia numelui clasei
+                
                 SymTableHelp::AddClassScope(*$2, SymTableHelp::currentScope);
              } 
              '[' class_body ']' { 
@@ -100,18 +103,14 @@ class_body : class_body decl
            | 
            ;
 
-//regula ajutatoare pentru functii
-//Aici folosim *$2 care contine tipul returnat de regula 'return_type'
 header_fn: FN_BC return_type ID_BC {
-           SymTableHelp::currentFuncName = *$3; //retin numele functiei pt a-i atasa parametrii mai tarziu
+           SymTableHelp::currentFuncName = *$3; 
            SymTableHelp::SetType(*$2); 
            SymTableHelp::AddVar(*$3, "functie"); 
            SymTableHelp::EnterScope("Func_" + *$3);
          }
          ;
 
-//dupa ce am citit lista de parametri, apelez SaveParams
-//aceasta muta parametrii din bufferul temporar in definitia functiei din scope-ul parinte
 fn_decl : header_fn '^' list_param '^' { SymTableHelp::SaveParams(); }'[' fn_body ']' { SymTableHelp::ExitScope(); }
         | header_fn '^' '^' { SymTableHelp::SaveParams(); } '[' fn_body ']' { SymTableHelp::ExitScope(); }
         ;
@@ -129,319 +128,462 @@ declarations : declarations decl
             ;
 
 
-main_bc : BGIN { SymTableHelp::EnterScope("Main"); } statement_list END { SymTableHelp::ExitScope(); } ;
+main_bc : BGIN { SymTableHelp::EnterScope("Main"); } statement_list END 
+               { 
+            // AICI SE FACE EXECUTIA AST 
+            // Colega va implementa logica din ASTNode::eval() pentru operatori
+            if ($3 != NULL) {
+                 for(ASTNode* n : *$3) 
+                   if(n) n->eval(SymTableHelp::currentScope);
+            }
+            SymTableHelp::ExitScope(); 
+        } ;
 
-statement_list :
-               | statement_list statement
-                ;
+statement_list : { $$ = new std::vector<ASTNode*>(); } 
+               | statement_list statement { 
+                   if ($2 != NULL) $1->push_back($2);
+                   $$ = $1;
+               }
+               ;
 
-
-// folosim CheckId pentru a verifica daca variabilele au fost declarate inainte de utilizare
-statement : ID_BC ASSIGN_GIFT e ';' { SymTableHelp::CheckId(*$1); 
+statement : ID_BC ASSIGN_GIFT e ';' { 
+          SymTableHelp::CheckId(*$1); 
           string tipSt=SymTableHelp::GetType(*$1);
-          string tipDr=*$3;
+          // Verificam NULL pentru a preveni segfault daca expresia e gresita
+          string tipDr = ($3 != NULL) ? $3->type : "eroare"; 
 
           if(tipSt!=tipDr && tipDr!="eroare"){
             std::cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui valoarea de tip "<<tipDr<<" variabilei "<<*$1<<" de tip "<<tipSt<<endl;
-
           }
-          delete $3;
+          
+          // CONSTRUIM NODUL DE ATRIBUIRE
+          // Trebuie sa recream nodul variabilei din stanga (pentru ca $1 e doar string)
+          // Constructor: ASTNode(tip, nume_var)
+          ASTNode* leftNode = new ASTNode(tipSt, *$1);
+          
+          // Constructor General: ASTNode(tip, ROOT="ASSIGN", left, right)
+          // Colega trebuie sa trateze if (root == "ASSIGN") in eval()
+          $$ = new ASTNode(tipSt, "ASSIGN", leftNode, $3);
+          
+          delete $1;
           }
           | ID_BC ACCES ID_BC ASSIGN_GIFT e ';' { 
             SymTableHelp::CheckId(*$1); 
             if(SymTableHelp::CheckClassMember(*$1,*$3)){
               string tipMembru=SymTableHelp::GetClassMemberType(*$1,*$3);
-              string tipE=*$5;
+              string tipE = ($5 != NULL) ? $5->type : "eroare";
 
               if(tipMembru!=tipE && tipE!="eroare"){
                 cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui "<<tipE<<" campului "<<*$3<<" ("<<tipMembru<<")"<<endl;
               }
             }
-            delete $5;
-            
+            // Aici ramane OTHER pentru ca nu implementam logica complexa de clase
+            $$ = new ASTNode("void", "OTHER"); 
+            delete $1; delete $3;
             }
-          | IF_BC '(' e_bool ')' '{' statement_list '}'
-          | IF_BC '(' e_bool ')' '{' statement_list '}' ELSE_BC '{' statement_list '}'
-          | WHILE_BC '(' e_bool ')' '{' statement_list '}'
-          | PRINT_BC '(' e ')' ';'
-          | RETURN_BC e ';'
-          |RETURN_BC e_bool ';'
+          |ID_BC ASSIGN_GIFT e_bool ';' { 
+              SymTableHelp::CheckId(*$1); 
+              string tipSt=SymTableHelp::GetType(*$1);
+              string tipDr = ($3 != NULL) ? $3->type : "eroare";
+
+              if(tipSt!=tipDr && tipDr!="eroare"){
+                std::cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui valoarea de tip "<<tipDr<<" variabilei "<<*$1<<" de tip "<<tipSt<<endl;
+              }
+              
+              // Constructie nod ASSIGN pentru bool
+              ASTNode* leftNode = new ASTNode(tipSt, *$1);
+              $$ = new ASTNode(tipSt, "ASSIGN", leftNode, $3);
+              
+              delete $1;
+          }
+          | ID_BC ACCES ID_BC ASSIGN_GIFT e_bool ';' { 
+            SymTableHelp::CheckId(*$1); 
+            if(SymTableHelp::CheckClassMember(*$1,*$3)){
+              string tipMembru=SymTableHelp::GetClassMemberType(*$1,*$3);
+              string tipE = ($5 != NULL) ? $5->type : "eroare";
+
+              if(tipMembru!=tipE && tipE!="eroare"){
+                cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui "<<tipE<<" campului "<<*$3<<" ("<<tipMembru<<")"<<endl;
+              }
+            }
+           $$ = new ASTNode("void", "OTHER"); 
+           delete $1; delete $3;
+            }
+          
+          // CONTROL FLOW returneaza NULL conform cerintei
+          | IF_BC '(' e_bool ')' '{' statement_list '}'{$$=NULL;}
+          | IF_BC '(' e_bool ')' '{' statement_list '}' ELSE_BC '{' statement_list '}'{$$=NULL;}
+          | WHILE_BC '(' e_bool ')' '{' statement_list '}'{$$=NULL;}
+          
+          | PRINT_BC '(' e ')' ';'{
+              // Construim nodul PRINT. Colega trebuie sa trateze if (root == "PRINT")
+              $$ = new ASTNode("void", "PRINT", $3, NULL);
+          } 
+          | RETURN_BC e ';' {$$=NULL;} 
+          | RETURN_BC e_bool ';' {$$=NULL;}
           ;
 
 e_bool: e EQ_GIFTS e {
-        if(*$1 != *$3 && *$1 != "eroare" && *$3 != "eroare") {
-            cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << *$1 << " == " << *$3 << ")" << endl;
-            $$=new std::string("eroare");
+        string t1 = ($1 != NULL) ? $1->type : "eroare";
+        string t3 = ($3 != NULL) ? $3->type : "eroare";
+
+        if(t1 != t3 && t1 != "eroare" && t3 != "eroare") {
+            cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << t1 << " == " << t3 << ")" << endl;
+             // Facem un nod dummy cu tipul eroare pentru a nu crapa mai sus
+             $$ = new ASTNode("eroare", "OTHER");
+             if($1) delete $1; if($3) delete $3;
         }
         else{
-        $$=new std::string("bool");
-        }
-        delete $1; delete $3;
+            // Construim nodul de egalitate. Colega trateaza if (root == "==")
+            $$ = new ASTNode("bool", "==", $1, $3);
+       }
       }
-  | e NEQ_GIFTS e {
-        if(*$1 != *$3 && *$1 != "eroare" && *$3 != "eroare") {
-            cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << *$1 << " == " << *$3 << ")" << endl;
-            $$=new std::string("eroare");
+ | e NEQ_GIFTS e {
+        string t1 = ($1 != NULL) ? $1->type : "eroare";
+        string t3 = ($3 != NULL) ? $3->type : "eroare";
+
+        if(t1 != t3 && t1 != "eroare" && t3 != "eroare") {
+            cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << t1 << " != " << t3 << ")" << endl;
+            $$ = new ASTNode("eroare", "OTHER");
+            if($1) delete $1; if($3) delete $3;
         }
         else{
-          $$=new std::string("bool");
+            $$ = new ASTNode("bool", "!=", $1, $3); 
         }        
-        delete $1; delete $3;}
+  }
   | e LE_GIFTS e {
-    if(*$1 != *$3){
-      if (*$1 != "eroare" && *$3 != "eroare") {
-      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
-      }$$=new std::string("eroare");
-    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
-        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
-       $$=new std::string("eroare");
+    string t1 = ($1 != NULL) ? $1->type : "eroare";
+    string t3 = ($3 != NULL) ? $3->type : "eroare";
+
+    if(t1 != t3){
+      if (t1 != "eroare" && t3 != "eroare") {
+         cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< t1 << " <= " << t3 << ")" << endl;
+      }
+      $$ = new ASTNode("eroare", "OTHER");
+      if($1) delete $1; if($3) delete $3;
+    } else if(t1 != "int_gift" && t1 != "float_snow" && t1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului "<< t1 <<endl;
+       $$ = new ASTNode("eroare", "OTHER");
+       if($1) delete $1; if($3) delete $3;
     }
       else
-      {$$=new std::string("bool");}
-      delete $1; delete $3;
+      { 
+         $$ = new ASTNode("bool", "<=", $1, $3);
+      }
     }    
   | e GE_GIFTS e {
-    if(*$1 != *$3){
-      if (*$1 != "eroare" && *$3 != "eroare") {
-      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
-      }$$=new std::string("eroare");
-    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
-        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
-       $$=new std::string("eroare");
+    string t1 = ($1 != NULL) ? $1->type : "eroare";
+    string t3 = ($3 != NULL) ? $3->type : "eroare";
+    
+    if(t1 != t3){
+      if (t1 != "eroare" && t3 != "eroare") {
+        cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< t1 << " >= " << t3 << ")" << endl;
+      }
+      $$ = new ASTNode("eroare", "OTHER");
+      if($1) delete $1; if($3) delete $3;
+    } else if(t1 != "int_gift" && t1 != "float_snow" && t1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului "<< t1 <<endl;
+       $$ = new ASTNode("eroare", "OTHER");
+       if($1) delete $1; if($3) delete $3;
     }
       else
-      {$$=new std::string("bool");}
-      delete $1; delete $3;
+      { 
+          $$ = new ASTNode("bool", ">=", $1, $3); 
+      }
     }    
   | e LT_GIFTS e {
-    if(*$1 != *$3){
-      if (*$1 != "eroare" && *$3 != "eroare") {
-      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
-      }$$=new std::string("eroare");
-    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
-        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
-       $$=new std::string("eroare");
+    string t1 = ($1 != NULL) ? $1->type : "eroare";
+    string t3 = ($3 != NULL) ? $3->type : "eroare";
+
+    if(t1 != t3){
+      if (t1 != "eroare" && t3 != "eroare") {
+         cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< t1 << " < " << t3 << ")" << endl;
+      }
+      $$ = new ASTNode("eroare", "OTHER");
+      if($1) delete $1; if($3) delete $3;
+    } else if(t1 != "int_gift" && t1 != "float_snow" && t1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului "<< t1 <<endl;
+       $$ = new ASTNode("eroare", "OTHER");
+       if($1) delete $1; if($3) delete $3;
     }
       else
-      {$$=new std::string("bool");}
-      delete $1; delete $3;
+      { 
+          $$ = new ASTNode("bool", "<", $1, $3); 
+      }
     }    
   | e GT_GIFTS e {
-    if(*$1 != *$3){
-      if (*$1 != "eroare" && *$3 != "eroare") {
-      cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< *$1 << " == " << *$3 << ")" << endl;
-      }$$=new std::string("eroare");
-    }else if(*$1 != "int_gift" && *$1!="float_snow" && *$1 != "eroare"){
-        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului"<<*$1<<endl;
-       $$=new std::string("eroare");
+    string t1 = ($1 != NULL) ? $1->type : "eroare";
+    string t3 = ($3 != NULL) ? $3->type : "eroare";
+
+    if(t1 != t3){
+      if (t1 != "eroare" && t3 != "eroare") {
+         cout<<"Eroare semantica la linia "<<yylineno<<": Nu se pot compara tipuri diferite ("<< t1 << " > " << t3 << ")" << endl;
+      }
+      $$ = new ASTNode("eroare", "OTHER");
+      if($1) delete $1; if($3) delete $3;
+    } else if(t1 != "int_gift" && t1 != "float_snow" && t1 != "eroare"){
+        cout<<"Eroare semantica: Operatorii de inegalitate se aplica doar numerelor, nu si tipului "<< t1 <<endl;
+       $$ = new ASTNode("eroare", "OTHER");
+       if($1) delete $1; if($3) delete $3;
     }
       else
-      {$$=new std::string("bool");}
-      delete $1; delete $3;
-    }    
-  | '(' e_bool ')' {$$=$2;}
-  | e_bool  EQ_GIFTS e_bool{
-    if (*$1 == "eroare" || *$3 == "eroare") {
-          $$ = new std::string("eroare");
-      } else {
-        $$ = new std::string("bool");
+      { 
+          $$ = new ASTNode("bool", ">", $1, $3);
       }
-    delete $1; delete $3;
+    }    
+  | '(' e_bool ')' { $$ = $2; }
 
+  | e_bool EQ_GIFTS e_bool{
+    string t1 = ($1 != NULL) ? $1->type : "eroare";
+    string t3 = ($3 != NULL) ? $3->type : "eroare";
+    
+    if (t1 == "eroare" || t3 == "eroare") {
+          $$ = new ASTNode("eroare", "OTHER");
+          if($1) delete $1; if($3) delete $3;
+      } else {
+        $$ = new ASTNode("bool", "==", $1, $3);
+      }
   }
   | e_bool NEQ_GIFTS e_bool{
-    if (*$1 == "eroare" || *$3 == "eroare") {
-          $$ = new std::string("eroare");
-      } else {
-        $$ = new std::string("bool");
-      }
-    delete $1; delete $3;
+    string t1 = ($1 != NULL) ? $1->type : "eroare";
+    string t3 = ($3 != NULL) ? $3->type : "eroare";
 
+    if (t1 == "eroare" || t3 == "eroare") {
+          $$ = new ASTNode("eroare", "OTHER");
+          if($1) delete $1; if($3) delete $3;
+      } else {
+       $$ = new ASTNode("bool", "!=", $1, $3);
+      }
   }
-  | e_bool ATELIER_AND_COR e_bool{ //gemini zice ca stim sigur ca sunt valori booleene deci nu mai verificam astea
-      $$ = new std::string("bool"); 
-      delete $1; delete $3;
+  | e_bool EQ_GIFTS e { $$ = new ASTNode("bool", "==", $1, $3); }
+  | e_bool NEQ_GIFTS e { $$ = new ASTNode("bool", "!=", $1, $3); }
+  | e EQ_GIFTS e_bool { $$ = new ASTNode("bool", "==", $1, $3); }
+  | e NEQ_GIFTS e_bool { $$ = new ASTNode("bool", "!=", $1, $3); }
+  
+  | e_bool ATELIER_AND_COR e_bool{ 
+     // Colega trateaza if (root == "&&")
+     $$ = new ASTNode("bool", "&&", $1, $3);
   }
   | e_bool DECORATIUNI_OR_COLINDE e_bool {
-    $$ = new std::string("bool"); 
-    delete $1; delete $3;
+     // Colega trateaza if (root == "||")
+     $$ = new ASTNode("bool", "||", $1, $3);
   }
-  | BOOL_VAL_BC {$$=new std::string("bool");}
-  | NOT_BC e_bool {$$=$2;}
+  
+
+  | BOOL_VAL_BC {
+      Val v;
+      if(*$1 == "nice") v.bval = true; else v.bval = false; 
+      v.tip = MY_BOOL; 
+   
+      // Constructor Constanta
+  $$ = new ASTNode(v, "bool");
+      delete $1;
+  }
+  | NOT_BC e_bool { 
+      // Operator Unar (Copilul stang e expresia, drept e NULL)
+      // Colega trateaza if (root == "!")
+      $$ = new ASTNode("bool", "!", $2, NULL);
+  }
   ;
 
 
 e : e '+' e {
-      std::string tipSt=*$1;
-      std::string tipDr=*$3;
+      std::string tipSt = ($1 != NULL) ? $1->type : "eroare";
+      std::string tipDr = ($3 != NULL) ? $3->type : "eroare";
 
-      if(tipSt==tipDr)
+      if(tipSt == tipDr)
       {
-        if(tipSt== "int_gift" || tipSt=="float_snow"){
-          $$=new std::string(tipSt);      
+        if(tipSt == "int_gift" || tipSt == "float_snow" || tipSt == "str_letter"){
+           // Construim Nodul Adunare (+)
+           // Colega trateaza if (root == "+") in eval()
+          $$ = new ASTNode(tipSt, "+", $1, $3);
         }
         else{
-        std::cout<<"Eroare semantica, linia "<< yylineno <<": Adunarea nu este permisa pentru tipul "<<tipSt;
-        $$=new string("eroare");      
+            std::cout<<"Eroare semantica, linia "<< yylineno <<": Adunarea nu este permisa pentru tipul "<<tipSt<<endl;
+            $$ = new ASTNode("eroare", "OTHER");
+             if($1) delete $1; if($3) delete $3;   
         }
       }else{
         std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa adunarea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
-        $$=new std::string("eroare");
+        $$ = new ASTNode("eroare", "OTHER");
+        if($1) delete $1; if($3) delete $3;
       }
-
-      delete $1;
-      delete $3;
+      
 }
   | e '-' e {
-      std::string tipSt=*$1;
-      std::string tipDr=*$3;
+      std::string tipSt = ($1 != NULL) ? $1->type : "eroare";
+      std::string tipDr = ($3 != NULL) ? $3->type : "eroare";
 
-      if(tipSt==tipDr)
+      if(tipSt == tipDr)
       {
-        if(tipSt== "int_gift" || tipSt=="float_snow"){
-          $$=new std::string(tipSt);      
+        if(tipSt == "int_gift" || tipSt == "float_snow"){
+         $$ = new ASTNode(tipSt, "-", $1, $3); 
         }
         else{
-        std::cout<<"Eroare semantica, linia "<< yylineno <<": Scaderea nu este permisa pentru tipul "<<tipSt;
-        $$=new string("eroare");      
+            std::cout<<"Eroare semantica: Scaderea nu este permisa pentru tipul "<<tipSt<<endl;
+            $$ = new ASTNode("eroare", "OTHER");   
+            if($1) delete $1; if($3) delete $3;   
         }
       }else{
-        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa scaderea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
-        $$=new std::string("eroare");
+        std::cout<<"Eroare semantica: Nu este permisa scaderea de tipuri diferite"<<endl;
+        $$ = new ASTNode("eroare", "OTHER");
+        if($1) delete $1; if($3) delete $3;
       }
-
-      delete $1;
-      delete $3;
   }
   | e '*' e {
-      std::string tipSt=*$1;
-      std::string tipDr=*$3;
+      std::string tipSt = ($1 != NULL) ? $1->type : "eroare";
+      std::string tipDr = ($3 != NULL) ? $3->type : "eroare";
 
-      if(tipSt==tipDr)
+      if(tipSt == tipDr)
       {
-        if(tipSt== "int_gift" || tipSt=="float_snow"){
-          $$=new std::string(tipSt);      
+        if(tipSt == "int_gift" || tipSt == "float_snow"){
+         $$ = new ASTNode(tipSt, "*", $1, $3); 
         }
         else{
-        std::cout<<"Eroare semantica, linia "<< yylineno <<": Inmultirea nu este permisa pentru tipul "<<tipSt;
-        $$=new string("eroare");      
+            std::cout<<"Eroare semantica: Inmultirea nu este permisa pentru tipul "<<tipSt<<endl;
+            $$ = new ASTNode("eroare", "OTHER"); 
+            if($1) delete $1; if($3) delete $3;     
         }
       }else{
-        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa inmultirea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
-        $$=new std::string("eroare");
+        std::cout<<"Eroare semantica: Nu este permisa inmultirea de tipuri diferite"<<endl;
+        $$ = new ASTNode("eroare", "OTHER");
+        if($1) delete $1; if($3) delete $3;
       }
-
-      delete $1;
-      delete $3;
-      } 
+  } 
   | e '/' e {
-      std::string tipSt=*$1;
-      std::string tipDr=*$3;
+      std::string tipSt = ($1 != NULL) ? $1->type : "eroare";
+      std::string tipDr = ($3 != NULL) ? $3->type : "eroare";
 
-      if(tipSt==tipDr)
+      if(tipSt == tipDr)
       {
-        if(tipSt== "int_gift" || tipSt=="float_snow"){
-          $$=new std::string(tipSt);      
+        if(tipSt == "int_gift" || tipSt == "float_snow"){
+          $$ = new ASTNode(tipSt, "/", $1, $3); 
         }
         else{
-        std::cout<<"Eroare semantica, linia "<< yylineno <<": Impartirea nu este permisa pentru tipul "<<tipSt;
-        $$=new string("eroare");      
+            std::cout<<"Eroare semantica: Impartirea nu este permisa pentru tipul "<<tipSt<<endl;
+            $$ = new ASTNode("eroare", "OTHER");  
+            if($1) delete $1; if($3) delete $3;    
         }
       }else{
-        std::cout<<"Eroare semantica la linia "<<yylineno<< ": Nu este permisa impartirea de tipuri diferite ("<<tipSt<<" + "<<tipDr<<")"<<endl;
-        $$=new std::string("eroare");
+        std::cout<<"Eroare semantica: Nu este permisa impartirea de tipuri diferite"<<endl;
+        $$ = new ASTNode("eroare", "OTHER");
+        if($1) delete $1; if($3) delete $3;
       }
-
+  } 
+  | '(' e ')' { $$ = $2; }
+  
+  | NR  {
+      int val = stoi(*$1);
+      Val v(val);
+      // Constructor Constanta
+$$ = new ASTNode(v, "int_gift");
+      delete $1; 
+  }
+  | FLOAT_NR {
+      float val = stof(*$1);
+      Val v(val);
+      // Constructor Constanta
+     $$ = new ASTNode(v, "float_snow");
       delete $1;
-      delete $3;
-      } 
-  | '(' e ')' {$$=$2;}
-  | NR  {$$=new std::string("int_gift");}
-  | FLOAT_NR {$$=new std::string("float_snow");}
-  | STRING_VAL {$$=new std::string("str_letter");}
+  }
+  | STRING_VAL {
+      Val v(*$1);
+      // Constructor Constanta
+      $$ = new ASTNode( v,"str_letter");
+      delete $1;
+  }
   | ID_BC { 
         if(SymTableHelp::CheckId(*$1))
         {
-          $$=new std::string(SymTableHelp::GetType(*$1));
+          string tip = SymTableHelp::GetType(*$1);
+          // Constructor Variabila (Root = nume)
+          $$ = new ASTNode(tip, *$1);
         }
         else{
-          $$=new std::string("eroare");
+          $$ = new ASTNode("eroare", "OTHER");
         }
-        }  
+        delete $1;
+   }  
   | ID_BC ACCES ID_BC {
     SymTableHelp::CheckId(*$1);
-    //verificam existenta membrului in clasa
+    string tip = "eroare";
     if(SymTableHelp::CheckClassMember(*$1,*$3)){
-      $$=new std::string(SymTableHelp::GetClassMemberType(*$1,*$3));
+       tip = SymTableHelp::GetClassMemberType(*$1,*$3);
     }
-    else{
-      $$=new std::string("eroare");
-    }
+    // Acces clasa -> Nod OTHER
+    $$ = new ASTNode(tip, "OTHER");
+    delete $1; delete $3;
   }
-  | call_fn { $$=$1;} //returnam tipul returnat de functie
+  | call_fn { $$ = $1; } 
   ;
 
-//verificarea parametrilor la apel tre sa o facem la analiza semantica
+// function calls returneaza ASTNode cu root OTHER
 call_fn: ID_BC '(' {SymTableHelp::ClearCallArg(); } wishlist ')' { 
-      bool exists=SymTableHelp::CheckId(*$1); 
-      bool checkParams=SymTableHelp::CheckFunctionCall(*$1);
+      bool exists = SymTableHelp::CheckId(*$1); 
+      bool checkParams = SymTableHelp::CheckFunctionCall(*$1);
 
       if(exists && checkParams){
-        //cazul in care fct exista si are parametri buni: returnam tipul returnat de functie
-        $$=new std::string(SymTableHelp::GetType(*$1));
+        string tip = SymTableHelp::GetType(*$1);
+      
+        $$ = new ASTNode(tip, "OTHER");
       }
       else{
-        $$=new std::string("eroare");
+        $$ = new ASTNode("eroare", "OTHER");
       }
-
-
+      delete $1;
       }
        | ID_BC '(' ')' { 
             SymTableHelp::ClearCallArg();
-
-            bool exists=SymTableHelp::CheckId(*$1); 
-            bool checkParams=SymTableHelp::CheckFunctionCall(*$1);
+            bool exists = SymTableHelp::CheckId(*$1); 
+            bool checkParams = SymTableHelp::CheckFunctionCall(*$1);
             
             if(exists && checkParams){
-              $$=new std::string(SymTableHelp::GetType(*$1));
+              string tip = SymTableHelp::GetType(*$1);
+              $$ = new ASTNode(tip, "OTHER");
             }
             else{
-              $$=new std::string("eroare");
+              $$ = new ASTNode("eroare", "OTHER");
             }
-            }
+            delete $1;
+       }
        | ID_BC ACCES ID_BC '('{SymTableHelp::ClearCallArg();} wishlist ')'{
-            //verificam obiectul si metoda
             if(SymTableHelp::CheckId(*$1)){
               if(SymTableHelp::CheckClassMethodCall(*$1,*$3)){
-                $$=new std::string(SymTableHelp::GetClassMemberType(*$1,*$3));         
-
+                 string tip = SymTableHelp::GetClassMemberType(*$1,*$3);
+                 $$ = new ASTNode(tip, "OTHER");
               }else{
-                yyerror("Eroare semantica: Metoda nu exista in clasa obiectului sau argumentele sunt gresite");
-                $$=new std::string("eroare");
+                yyerror("Eroare semantica: Metoda nu exista sau argumente gresite");
+                $$ = new ASTNode("eroare", "OTHER");
               }
           }
           else{
-            $$=new std::string("eroare");
+            $$ = new ASTNode("eroare", "OTHER");
           }
+          delete $1; delete $3;
           }
        | ID_BC ACCES ID_BC '(' ')'{
         if(SymTableHelp::CheckId(*$1)){
-          SymTableHelp::ClearCallArg(); //buffer gol fiindca nu avem argumente
+          SymTableHelp::ClearCallArg();
           if(SymTableHelp::CheckClassMethodCall(*$1,*$3)){
-            $$=new std::string(SymTableHelp::GetClassMemberType(*$1,*$3));
+            string tip = SymTableHelp::GetClassMemberType(*$1,*$3);
+            $$ = new ASTNode(tip, "OTHER");
           }
           else{
-            $$=new std::string("eroare");
+            $$ = new ASTNode("eroare", "OTHER");
           }
         }
         else{
-          $$=new std::string("eroare");
+          $$ = new ASTNode("eroare", "OTHER");
         }
+        delete $1; delete $3;
        }
        ;
 
-wishlist : e {SymTableHelp::AddCallArg(*$1);}
-         |  wishlist ',' e {SymTableHelp::AddCallArg(*$3);}
+
+wishlist : e {SymTableHelp::AddCallArg(($1 != NULL) ? $1->type : "eroare");}
+         |  wishlist ',' e {SymTableHelp::AddCallArg(($3 != NULL) ? $3->type : "eroare");}
+         | e_bool {SymTableHelp::AddCallArg(($1 != NULL) ? $1->type : "eroare");}
+         |  wishlist ',' e_bool {SymTableHelp::AddCallArg(($3 != NULL) ? $3->type : "eroare");}
          ; 
 
 

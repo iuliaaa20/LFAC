@@ -152,7 +152,7 @@ bool SymTableHelp::CheckClassMember(string objectName, string memberName){
 
 string SymTableHelp::GetClassMemberType(string objectName, string memberName){
     string className=GetType(objectName);
-    if(classMap.find(className)==classMap.end()){
+    if(classMap.find(className)!=classMap.end()){
         SymTable* classTable=classMap[className];
 
         //returnam tipul membrului din tabela clasei, nu din scopul curent
@@ -201,10 +201,9 @@ bool SymTableHelp::CheckClassMethodCall(string objectName, string methodName){
     //verificam tipul fiecarui parametru
     for(int i=0;i<methodInfo->paramTypes.size();i++){
         if(methodInfo->paramTypes[i]!=callArgsBuffer[i]){
-            cout<<"Eroare semantica: Tipul argumentului de pe pozitia "<<i+1<<"este gresit. Metoda "<<methodName<<" astepta "<<methodInfo->paramTypes[i]<<" si a primit "<<callArgsBuffer[i]<<endl;
+            cout<<"Eroare semantica: Tipul argumentului de pe pozitia "<<i+1<<" este gresit. Metoda "<<methodName<<" astepta "<<methodInfo->paramTypes[i]<<" si a primit "<<callArgsBuffer[i]<<endl;
         return false;
         }
     }
     return true;
 }
-

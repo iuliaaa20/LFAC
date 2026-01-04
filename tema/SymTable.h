@@ -27,7 +27,7 @@ class Val{
     Val() : tip(MY_NEDEF) {} 
     Val(int v) : tip(MY_INT), ival(v) {}
     Val(float v) : tip(MY_FLOAT), fval(v) {}
-    Val(string v) : tip(MY_STRING), sval(v) {}
+    explicit Val(string v) : tip(MY_STRING), sval(v) {}
     Val(bool v) : tip(MY_BOOL), bval(v) {}
 
 
@@ -64,4 +64,3 @@ public:
     vector<string> getParams(string name); // returnează lista de tipuri pentru parametri
     ~SymTable();
 };
-
