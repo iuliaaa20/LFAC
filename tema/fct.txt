@@ -1,0 +1,21 @@
+// Definitie
+elf lenes afiseaza ^ ^ [ Print("Salut"); ]
+elf  int_gift afiseaza_int ^ ^ [ 
+str_letter string;
+string="10";
+Print("Salut");
+return 7; ]
+
+
+int_gift x;
+
+begin_xmas
+    // ASTA ESTE GRESIT SEMANTIC
+ // x= afiseaza(); 
+  //CORECT
+  afiseaza();
+   grinch();
+
+  //  Print( 10 + afiseaza() );
+
+end_xmas

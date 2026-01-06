@@ -1,0 +1,45 @@
+int_gift res;
+int_gift n;
+
+class FabricaJucarii [
+    int_gift numar_jucarii;
+    str_letter tip_jucarie;
+
+
+    elf int_gift adauga_stoc ^ int_gift cantitate ^ [
+        int_gift stoc_nou;
+        
+        stoc_nou = cantitate + 10;
+        return stoc_nou;
+    ]
+]
+
+
+elf str_letter defaultstring ^ str_letter bc^[
+    str_letter a,b ,c;
+    a="aaaaaa";
+    b="bbbbb";
+    return a+b+bc;
+]
+create_gift FabricaJucarii fabricaMea;   
+fabricaMea->tip_jucarie="pisic";
+
+bool este_craciun;
+bool nu_este; 
+
+
+begin_xmas
+
+res=10;
+Print(res);
+n=0;
+este_craciun=nice;
+res=9;
+
+if(este_craciun){
+    Print(res);
+}
+    Print(res);
+
+
+end_xmas

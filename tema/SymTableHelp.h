@@ -35,5 +35,6 @@ class SymTableHelp{
         static bool CheckClassMember(string objectName,string memberName);
         static string GetClassMemberType(string objectName, string memberName);
         static bool CheckClassMethodCall(string objectName, string methodName);
+        static bool CheckFunctionExists(string name);
         
     };

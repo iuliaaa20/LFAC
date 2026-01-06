@@ -24,23 +24,27 @@ elf int_gift calculeaza_necesar ^ int_gift copii, int_gift jucarii_per_copil ^ [
 ]
 
     int_gift rezultat; int_gift stoc_calculat;  create_gift FabricaJucarii fabricaMea;
+    bool v1; bool v2;
+    int_gift gifts;
+    bool true;
 
 begin_xmas
     
     scor_global = 100;
     temperatura = 12.5;
     nume_elf = "Alabaster Snowball";
-    este_craciun = nice;  //!!!! AICI NU MERGE SA ASIGNAM ASA !!!!! si ar trb ceva la reguli cred ca sa nu dea conflicte gen reduce/reduce
-    // nice = true
+    este_craciun = nice;  
+    true=nice;
+    gifts=100;
 
     temperatura = temperatura - 2.5;
 
      if (este_craciun == nice) {
-        Print(nume_elf);}
+    Print(nume_elf);}
 
    
     rezultat = calculeaza_necesar(10, 2); 
-    
+    Print(gifts+scor_global);
   
     
     fabricaMea -> numar_jucarii = 500;

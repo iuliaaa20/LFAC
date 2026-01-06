@@ -1,0 +1,51 @@
+    int_gift a;
+    float_snow f;
+    bool e_adevarat;
+    bool nu_este;
+    str_letter nume;
+
+
+begin_xmas
+    // 1. Aritmetica simpla
+
+    a = 10 + 5 * 2; 
+    Print(a); // Asteptat: 20
+
+    // 2. Lucru cu float
+    f = 10.5 + 2.5;
+    Print(f); // Asteptat: 13.0
+
+    // 3. Logica
+    e_adevarat = nice and (10 > 2);
+    Print(e_adevarat); // Asteptat: true (nice)
+
+    // 4. Update variabile
+    a = a + 1;
+    Print(a); // Asteptat: 21
+
+    // 5. String-uri (daca ai implementat + pe stringuri in AST)
+    nume = "Mos" + " Craciun"; 
+        Print(nume);
+
+// TEST AND OR CU VALORI BOOL SI NON BOOL
+    nu_este=naughty;
+    
+Print( nice and nu_este); //naughty
+Print( nu_este and nice); //naughty
+Print( nice and nice); //nice
+Print( nu_este and nu_este); //naughty
+if( nu_este and nice){
+ Print("yay");
+} 
+
+  //aici ar trebui sa dea erori cele 4 Print uri si in if
+Print( 1 or nu_este); 
+Print( nu_este or 1); 
+Print( yes or nice); 
+Print( nu_este or 23.0); 
+if( nu_este or 23.0){
+    Print("yay");
+} 
+
+
+end_xmas

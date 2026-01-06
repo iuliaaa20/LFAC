@@ -207,3 +207,20 @@ bool SymTableHelp::CheckClassMethodCall(string objectName, string methodName){
     }
     return true;
 }
+
+bool SymTableHelp::CheckFunctionExists(string name){
+    if(currentScope==NULL) return false;
+
+    IdInfo* id=currentScope->findId(name);
+
+    if(id==NULL){
+        cout<<"Eroare semantica: Functia "<<name<<" nu este declarata"<<endl;
+        return false;
+    }
+
+    if(id->kind!="functie"){
+    cout<<"Eroare semantica: "<<name<<" este definita ca "<<id->kind<<" si nu poate fi apelata ca functie"<<endl;
+        return false;    }
+
+    return true;
+}
