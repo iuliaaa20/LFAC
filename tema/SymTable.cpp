@@ -8,7 +8,7 @@ SymTable::SymTable(string name, SymTable* pred) {
 //vrem sa adaugam o variabile(simbol) in tabela
 void SymTable::addVar(string type, string name, string kind) {
     if (ids.count(name)) {
-        cout << "Eroare: Id " << name << " este deja definit in scope " << scopeName << endl; //nu putem defini de doua ori in acelasi scope o variabila
+        cout << "Eroare la linia "<<yylineno<<": Id " << name << " este deja definit in scope " << scopeName << endl; //nu putem defini de doua ori in acelasi scope o variabila
         return;
     }
 

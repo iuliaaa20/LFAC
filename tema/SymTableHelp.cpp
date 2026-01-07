@@ -9,6 +9,8 @@ string SymTableHelp::currentFuncName = "";
 vector<string> SymTableHelp::callArgsBuffer; //initializare buffer pt argumente la apelul functiei
 map<string, SymTable*> SymTableHelp::classMap;
 
+extern int yylineno;
+
 //imi deschid fisierul unde voi printa tabelele si intru in scopul global:
 void SymTableHelp:: Init() {
     fisier.open("tables.txt");
@@ -82,7 +84,7 @@ bool SymTableHelp::CheckId(string name) {
         return true; 
     }
 
-    cout << "Eroare: variabila '" << name << "' nu e declarata" << endl;
+    cout << "Eroare la linia "<<yylineno<<": variabila '" << name << "' nu e declarata" << endl;
     return false;
 }
 
@@ -102,13 +104,13 @@ bool SymTableHelp::CheckFunctionCall(string funcName){
     
     if(expectedParams.size()!=callArgsBuffer.size())
      {//verificam nr de pramatri daca corespunde
-        cout<<"Eroare semantica: Functia "<<funcName<<" asteapta "<<expectedParams.size()<<" argumente in loc de "<<callArgsBuffer.size()<<" argumente primite"<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": Functia "<<funcName<<" asteapta "<<expectedParams.size()<<" argumente in loc de "<<callArgsBuffer.size()<<" argumente primite"<<endl;
         return false;        
     }
     for(int i=0;i<expectedParams.size();i++)
     {
         if(expectedParams[i] != callArgsBuffer[i]){
-            cout<<"Eroare semantica la apelul functiei "<<funcName<<". Argumentul "<<(i+1)<<" are tipul incorect ("<<callArgsBuffer[i]<<") in loc de "<<expectedParams[i]<<endl;
+            cout<<"Eroare semantica la linia "<<yylineno<<" la apelul functiei "<<funcName<<". Argumentul "<<(i+1)<<" are tipul incorect ("<<callArgsBuffer[i]<<") in loc de "<<expectedParams[i]<<endl;
         return false;
         }
         
@@ -127,7 +129,7 @@ void SymTableHelp::AddClassScope(string className, SymTable* table){
 bool SymTableHelp::CheckClassMember(string objectName, string memberName){
     //gasim obiectul
     if(!currentScope->existsId(objectName)){
-        cout<<"Eroare: Obiectul "<<objectName<<" nu este definit"<<endl;
+        cout<<"Eroare la linia "<<yylineno<<": Obiectul "<<objectName<<" nu este definit"<<endl;
         return false;
     }
     //gasim tipul obiectului
@@ -135,7 +137,7 @@ bool SymTableHelp::CheckClassMember(string objectName, string memberName){
 
     //cautam table clasei <nume_clasa> in map
     if(classMap.find(className)==classMap.end()){
-        cout<<"Eroare: "<<objectName<<" are tipul "<<className<<" care nu este o clasa"<<endl;
+        cout<<"Eroare la linia "<<yylineno<<": "<<objectName<<" are tipul "<<className<<" care nu este o clasa"<<endl;
         return false;
     }
 
@@ -145,7 +147,7 @@ bool SymTableHelp::CheckClassMember(string objectName, string memberName){
     if(classTable->existsId(memberName)){
         return true;
     }else{
-        cout<<"Eroare: Clasa "<<className<<" nu are membrul "<<memberName<<endl;
+        cout<<"Eroare la linia "<<yylineno<<": Clasa "<<className<<" nu are membrul "<<memberName<<endl;
         return false;
     }
 }
@@ -167,12 +169,12 @@ bool SymTableHelp::CheckClassMethodCall(string objectName, string methodName){
     string className=currentScope->getType(objectName);
 
     if(className=="eroare"){
-        cout<<"Eroare semantica: Obiectul"<<objectName<<" nu este declarat"<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": Obiectul"<<objectName<<" nu este declarat"<<endl;
         return false;
     }
     //verificam daca tipul obiectului este o clasa definita de noi
     if (classMap.find(className)==classMap.end()){
-        cout<<"Eroare semantica: Variabila "<<objectName<<" are tipul "<<className<<" care nu este o clasa definita "<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": Variabila "<<objectName<<" are tipul "<<className<<" care nu este o clasa definita "<<endl;
         return false;
     }
 
@@ -182,26 +184,26 @@ bool SymTableHelp::CheckClassMethodCall(string objectName, string methodName){
     IdInfo* methodInfo=classTable->findId(methodName);
 
     if(methodInfo==NULL){
-        cout<<"Eroare semantica: Clasa "<<className<<" nu are metoda "<<methodName<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": Clasa "<<className<<" nu are metoda "<<methodName<<endl;
         return false;
     }
 
     //verificam daca simbolul gasit chiar e functie
     if(methodInfo->kind!="functie"){
-        cout<<"Eroare semantica: "<<methodName<<" este definita in clasa "<<className<<", dar nu este o functie, ci  "<<methodInfo->kind<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": "<<methodName<<" este definita in clasa "<<className<<", dar nu este o functie, ci  "<<methodInfo->kind<<endl;
         return false;
     }
 
     //verificam nr de parametri
     if(methodInfo->paramTypes.size()!=callArgsBuffer.size()){
-        cout<<"Eroare semantica: Numar gresit de parametri pentru metoda "<<methodName<<". A primit "<<callArgsBuffer.size()<<" parametri, se asteapta "<<methodInfo->paramTypes.size()<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": Numar gresit de parametri pentru metoda "<<methodName<<". A primit "<<callArgsBuffer.size()<<" parametri, se asteapta "<<methodInfo->paramTypes.size()<<endl;
         return false;
     }
 
     //verificam tipul fiecarui parametru
     for(int i=0;i<methodInfo->paramTypes.size();i++){
         if(methodInfo->paramTypes[i]!=callArgsBuffer[i]){
-            cout<<"Eroare semantica: Tipul argumentului de pe pozitia "<<i+1<<" este gresit. Metoda "<<methodName<<" astepta "<<methodInfo->paramTypes[i]<<" si a primit "<<callArgsBuffer[i]<<endl;
+            cout<<"Eroare semantica la linia "<<yylineno<<": Tipul argumentului de pe pozitia "<<i+1<<" este gresit. Metoda "<<methodName<<" astepta "<<methodInfo->paramTypes[i]<<" si a primit "<<callArgsBuffer[i]<<endl;
         return false;
         }
     }
@@ -214,13 +216,23 @@ bool SymTableHelp::CheckFunctionExists(string name){
     IdInfo* id=currentScope->findId(name);
 
     if(id==NULL){
-        cout<<"Eroare semantica: Functia "<<name<<" nu este declarata"<<endl;
+        cout<<"Eroare semantica la linia "<<yylineno<<": Functia "<<name<<" nu este declarata"<<endl;
         return false;
     }
 
     if(id->kind!="functie"){
-    cout<<"Eroare semantica: "<<name<<" este definita ca "<<id->kind<<" si nu poate fi apelata ca functie"<<endl;
+    cout<<"Eroare semantica la linia "<<yylineno<<": "<<name<<" este definita ca "<<id->kind<<" si nu poate fi apelata ca functie"<<endl;
         return false;    }
 
     return true;
 }
+
+bool SymTableHelp::CheckClassExists(string name){
+    if(classMap.find(name)==classMap.end()){
+        cout<<"Eroare semantica la linia "<<yylineno<<": Clasa "<<name<<" nu este definita (sau este definita mai jos)"<<endl;
+        return false;
+    }
+    return true;
+
+}
+

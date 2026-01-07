@@ -1,0 +1,49 @@
+int_gift pret_cadou1;
+pret_cadou1=10;
+create_gift Spiridus iulia;
+
+class Spiridus [
+    str_letter nume;
+    bool are_task;
+
+    elf bool impacheteaza ^ str_letter cadou ^ [
+        bool impachetat;
+        impachetat=nice;
+
+        if(are_task==nice)
+        {
+            impachetat=naughty;
+        }
+        return impachetat;
+    ]
+]
+
+elf bool verificaFonduri ^ float_snow buget, int_gift pret ^ [
+    if (buget >= pret) { // EROARE
+        return nice;
+    } else {
+        return naughty;
+    }
+]
+create_gift piridus irina;
+
+class Copil [
+    str_letter nume;
+     int_gift varsta;
+     bool cuminte;
+  
+    elf int_gift sub10ani ^ int_gift varsta, float_snow buget ^
+    [ if(varsta<10)
+        {return nice;} //EROARE
+        else {return naughty;}
+    ]
+    elf int_gift sub10ani ^ int_gift varsta, float_snow buget ^
+    [ if(varsta<10)
+        {return nice;} //EROARE
+        else {return naughty;}
+    ]
+    
+]
+
+begin_xmas
+end_xmas

@@ -76,7 +76,11 @@ type : INT_BC    { SymTableHelp::SetType("int_gift");   $$ = new std::string("in
      | FLOAT_BC  { SymTableHelp::SetType("float_snow"); $$ = new std::string("float_snow"); }
      | STRING_BC { SymTableHelp::SetType("str_letter"); $$ = new std::string("str_letter"); }
      | BOOL_BC   { SymTableHelp::SetType("bool");       $$ = new std::string("bool"); }
-     | NEW_BC ID_BC {    SymTableHelp::SetType(*$2);  $$ = new std::string(*$2);}
+     | NEW_BC ID_BC {    
+      SymTableHelp::CheckClassExists(*$2);
+      SymTableHelp::SetType(*$2); 
+      $$ = new std::string(*$2);
+      }
      | VOID_BC    {SymTableHelp::SetType("lenes");  $$=new std::string("lenes");}
  
      ; 
@@ -91,6 +95,7 @@ list_variabile : ID_BC { SymTableHelp::AddVar(*$1, "variabila"); delete $1; }
 
 
 class_decl : CLASS_BC ID_BC { 
+                SymTableHelp::SetType("definitie_clasa");        
                 SymTableHelp::AddVar(*$2, "clasa");        
                 SymTableHelp::EnterScope("Class_" + *$2);  
                 

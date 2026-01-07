@@ -7,6 +7,8 @@
 #include <fstream>
 #include <vector>
 using namespace std;
+
+extern int yylineno;
 //aici avem niste nume definite de noi pentru tipurile de date
 enum DataTypes{
 MY_INT,
