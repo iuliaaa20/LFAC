@@ -11,6 +11,7 @@
 "begin_xmas"   { return BGIN; }
 "end_xmas"     { return END; }
 "class"        { return CLASS_BC; }
+"own"          {return OWN_BC;}
 "if"           { return IF_BC; }
 "else"         { return ELSE_BC; }      
 "while"        { return WHILE_BC; }

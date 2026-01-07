@@ -28,7 +28,7 @@ void yyerror(const char * s);
     std::vector<class ASTNode*>* List;
 }; 
 
-%token BGIN END CLASS_BC  NEW_BC FN_BC ACCES VOID_BC // aici am pus void bc pt elf lenes
+%token BGIN END CLASS_BC  NEW_BC FN_BC ACCES VOID_BC OWN_BC // aici am pus void bc pt elf lenes
 %token IF_BC ELSE_BC WHILE_BC RETURN_BC PRINT_BC 
 %token ASSIGN_GIFT ATELIER_AND_COR DECORATIUNI_OR_COLINDE EQ_GIFTS NEQ_GIFTS LE_GIFTS GE_GIFTS LT_GIFTS GT_GIFTS NOT_BC
 
@@ -108,8 +108,22 @@ class_decl : CLASS_BC ID_BC {
 
 class_body : class_body decl      
            | class_body fn_decl 
-           | 
+           | class_body constr_decl
+           |
            ;
+
+header_constr: FN_BC ID_BC{
+      SymTableHelp::CheckConstructorName(*$2);
+      SymTableHelp::currentFuncName = *$2;
+      SymTableHelp::SetType("constructor"); 
+      SymTableHelp::AddVar(*$2, "functie"); 
+      SymTableHelp::EnterScope("Func_" + *$2);
+      }
+      ;
+
+constr_decl : header_constr '^' list_param '^' {SymTableHelp::SaveParams();} '[' fn_body ']' {SymTableHelp::ExitScope();}
+            | header_constr '^' '^' {SymTableHelp::SaveParams();} '[' fn_body ']' {SymTableHelp::ExitScope();}
+            ;
 
 header_fn: FN_BC return_type ID_BC {
            SymTableHelp::currentFuncName = *$3; 
@@ -129,11 +143,11 @@ list_param : param
 param : type ID_BC { SymTableHelp::AddParam(*$2); delete $1; delete $2;} ; // am pus delete si aici
 
 
-fn_body : declarations statement_list 
+fn_body : statement_list 
         ;
-declarations : declarations decl 
-            |
-            ;
+// declarations : declarations decl 
+//             |
+//             ;
 
 
 main_bc : BGIN { SymTableHelp::EnterScope("Main"); } statement_list END 
@@ -151,6 +165,7 @@ statement_list : { $$ = new std::vector<ASTNode*>(); }
                    if ($2 != NULL) $1->push_back($2);
                    $$ = $1;
                }
+               | statement_list decl {$$=$1;}
                ;
 
 statement : ID_BC ASSIGN_GIFT e ';' { 
@@ -215,7 +230,38 @@ statement : ID_BC ASSIGN_GIFT e ';' {
            $$ = new ASTNode("void", "OTHER"); 
            delete $1; delete $3;
             }
-          
+          | OWN_BC ACCES ID_BC ASSIGN_GIFT e ';'{
+            if(SymTableHelp::CheckOwnMember(*$3)){
+              string tipSt = SymTableHelp::GetClassMemberTypeFromCurrentScope(*$3);
+              string tipDr = ($5 != NULL) ? $5->type : "eroare";
+
+              if(tipSt != tipDr && tipDr != "eroare"){
+             cout << "Eroare semantica la linia " << yylineno << ": Nu se poate atribui " << tipDr << " membrului " << *$3 << " (" << tipSt << ")" << endl;
+              }
+
+              ASTNode* leftNode = new ASTNode(tipSt, *$3);
+              $$ = new ASTNode(tipSt, ":=", leftNode, $5);
+          }else{
+            $$=new ASTNode("eroare","OTHER");
+          }
+          delete $3;
+          }
+         | OWN_BC ACCES ID_BC ASSIGN_GIFT e_bool ';'{
+            if(SymTableHelp::CheckOwnMember(*$3)){
+              string tipSt = SymTableHelp::GetClassMemberTypeFromCurrentScope(*$3);
+              string tipDr = ($5 != NULL) ? $5->type : "eroare";
+
+              if(tipSt != tipDr && tipDr != "eroare"){
+             cout << "Eroare semantica la linia " << yylineno << ": Nu se poate atribui " << tipDr << " membrului " << *$3 << " (" << tipSt << ")" << endl;
+              }
+
+              ASTNode* leftNode = new ASTNode(tipSt, *$3);
+              $$ = new ASTNode(tipSt, ":=", leftNode, $5);
+          }else{
+            $$=new ASTNode("eroare","OTHER");
+          }
+          delete $3;
+          }
           // CONTROL FLOW returneaza NULL conform cerintei
           | IF_BC '(' e_bool ')' '{' statement_list '}'{$$=NULL;}
           | IF_BC '(' e_bool ')' '{' statement_list '}' ELSE_BC '{' statement_list '}'{$$=NULL;} // am adaugat if si while pt e aici ca sa putem face if(id_de_bool)
@@ -253,7 +299,12 @@ statement : ID_BC ASSIGN_GIFT e ';' {
             std::string tipFct=SymTableHelp::GetType(SymTableHelp::currentFuncName);
 
             if(tipFct!="eroare" && tipReturn!="eroare"){
-              if(tipFct!=tipReturn){
+              if(tipFct=="constructor"){
+                if(tipReturn != "int_gift"){
+                  std::cout << "Eroare semantica la linia "<<yylineno<<": Constructorul trebuie sa returneze 0 (int_gift)." << endl;
+                }
+              }
+              else if(tipFct!=tipReturn){
                 std::cout<<"Eroare semantica la linia "<<yylineno<<": Functia "<<SymTableHelp::currentFuncName<<" este de tip "<<tipFct<<" dar returneaza o valoare de tip "<<tipReturn<<endl;            
                 }
             }
@@ -674,6 +725,21 @@ $$ = new ASTNode(v, "int_gift");
     $$ = new ASTNode(tip, "OTHER");
     delete $1; delete $3;
   }
+  | OWN_BC ACCES ID_BC {
+            if(SymTableHelp::CheckOwnMember(*$3)){
+                string tip = SymTableHelp::GetClassMemberTypeFromCurrentScope(*$3);
+                if(tip=="bool"){
+                  cout << "Eroare semantica la linia " << yylineno << ": Membrul " << *$3 << " este bool si nu poate fi folosit in expresii aritmetice." << endl;
+                 $$ = new ASTNode("eroare", "OTHER");
+                }
+                else
+                $$ = new ASTNode(tip, *$3);
+            } else {
+                $$ = new ASTNode("eroare", "OTHER");
+            }
+            delete $3;
+          }
+          
   | call_fn { $$ = $1; } 
   ;
 // aici avem mesaje cu eroare semantica in SymTableHelp cica si daca punem si aici se dubleaza

@@ -236,3 +236,42 @@ bool SymTableHelp::CheckClassExists(string name){
 
 }
 
+bool SymTableHelp::CheckOwnMember(string memberName){
+    if(!currentScope) return false;
+    SymTable* parent=currentScope->getPred();
+    if(!parent){
+        cout<<"Eroare semantica la linia "<<yylineno<<": own poate fi utilizat doar in interiorul metodelor unei clase"<<endl;
+        return false;
+    }
+
+    if(parent->existsId(memberName)){
+        return true;
+    }else{
+        cout<<"Eroare semantica la linia "<<yylineno<<": Membrul "<<memberName<<" nu exista in clasa curenta"<<endl;
+        return false;
+    }
+}
+
+string SymTableHelp::GetClassMemberTypeFromCurrentScope(string memberName) {
+    if (currentScope && currentScope->getPred()) {
+        return currentScope->getPred()->getType(memberName);
+    }
+    return "eroare";
+}
+
+void SymTableHelp::CheckConstructorName(string name){
+    if(!currentScope) return;
+    string scopeName=currentScope->getScopeName();
+
+    if (scopeName.find("Class_") == 0) {
+        string className=scopeName.substr(6);
+        if(className!=name){
+            cout<<"Eroare semantica la linia"<<yylineno<<": Constructorul "<<name<<" trebuie sa aiba acelasi nume cu clasa, mai exact "<<className<<endl;
+        }
+    }else{
+        cout<<"Eroare semantica la linia"<<yylineno<<": Constructorii pot fi definiti doar in interiorul claselor "<<endl;
+
+    }
+
+
+}

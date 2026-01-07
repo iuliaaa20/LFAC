@@ -1,6 +1,6 @@
-int_gift pret_cadou1;
-pret_cadou1=10;
-create_gift Spiridus iulia;
+//int_gift pret_cadou1;
+//pret_cadou1=10;
+//reate_gift Spiridus iulia;
 
 class Spiridus [
     str_letter nume;

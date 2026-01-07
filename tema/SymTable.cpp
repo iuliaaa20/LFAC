@@ -106,6 +106,11 @@ vector<string> SymTable::getParams(string name){
     {return id->paramTypes;}
     return vector<string>(); // vector gol daca nu e functie sau nu exista
 }
+string SymTable::getScopeName()
+{
+    return scopeName;
+}
+
 
 SymTable::~SymTable() {
     ids.clear();
