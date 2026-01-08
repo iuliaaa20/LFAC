@@ -254,3 +254,35 @@ void SymTableHelp::CheckConstructorName(string name){
     }
 
 }
+
+bool SymTableHelp::CheckConstructorCall(string className){
+    if (classMap.find(className) == classMap.end()) {
+        cout << "Eroare semantica la linia"<<yylineno<<": Clasa " << className << " nu exista." << endl;
+        return false;
+    }
+
+    SymTable* classTable = classMap[className];
+    IdInfo* constructor = classTable->findId(className);
+
+    if (constructor == NULL || constructor->kind != "functie"){
+        if (callArgsBuffer.size() == 0) return true;
+
+        cout << "Eroare semantica la linia"<<yylineno<<": Clasa " << className << " nu are constructor definit, dar este apelata cu argumente." << endl;
+         return false;
+    }
+
+    vector<string> expectedParams = constructor->paramTypes;
+
+    if (expectedParams.size() != callArgsBuffer.size()) {
+        cout << "Eroare semantica la linia"<<yylineno<<": Constructorul " << className << " asteapta " << expectedParams.size() << " argumente..." << endl;
+        return false;
+    }
+
+    for(size_t i=0; i < expectedParams.size(); ++i) {
+        if(expectedParams[i] != callArgsBuffer[i]) {
+             cout << "Eroare semantica la linia"<<yylineno<<": Tip argument gresit la constructor" << endl;
+             return false;
+        }
+    }
+    return true;
+}

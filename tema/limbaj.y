@@ -185,7 +185,6 @@ statement : ID_BC ASSIGN_GIFT e ';' {
 
           ASTNode* leftNode = new ASTNode(tipSt, *$1);
           
-          // Constructor General: ASTNode(tip, ROOT=":=", left, right)
           $$ = new ASTNode(tipSt, ":=", leftNode, $3);
           
           delete $1;
@@ -213,7 +212,6 @@ statement : ID_BC ASSIGN_GIFT e ';' {
                 std::cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui valoarea de tip "<<tipDr<<" variabilei "<<*$1<<" de tip "<<tipSt<<endl;
               }
               
-              // Constructie nod := pentru bool
               ASTNode* leftNode = new ASTNode(tipSt, *$1);
               $$ = new ASTNode(tipSt, ":=", leftNode, $3);
               
@@ -266,7 +264,7 @@ statement : ID_BC ASSIGN_GIFT e ';' {
           }
           // CONTROL FLOW returneaza NULL conform cerintei
           | IF_BC '(' e_bool ')' '{' statement_list '}'{$$=NULL;}
-          | IF_BC '(' e_bool ')' '{' statement_list '}' ELSE_BC '{' statement_list '}'{$$=NULL;} // am adaugat if si while pt e aici ca sa putem face if(id_de_bool)
+          | IF_BC '(' e_bool ')' '{' statement_list '}' ELSE_BC '{' statement_list '}'{$$=NULL;} 
           | IF_BC '(' e ')' '{' statement_list '}'{
             if($3!=NULL){
               if($3->type != "bool")
@@ -308,7 +306,7 @@ statement : ID_BC ASSIGN_GIFT e ';' {
 
         $$ = $1; 
     }
-          | RETURN_BC e ';' { // la returnuri am pus verificarea daca tipul functiei este si acela returnat si sunt tratate si cazurile cu 'lenes'
+          | RETURN_BC e ';' {
             std::string tipReturn=($2!=NULL)?$2->type:"eroare";
             std::string tipFct=SymTableHelp::GetType(SymTableHelp::currentFuncName);
 
@@ -344,7 +342,7 @@ statement : ID_BC ASSIGN_GIFT e ';' {
 
             $$=NULL;
             }
-            //aici regula pt fct void
+          
           | RETURN_BC ';' {
             std::string tipFct=SymTableHelp::GetType(SymTableHelp::currentFuncName);
 
@@ -361,7 +359,6 @@ e_bool: e EQ_GIFTS e {
 
         if(t1 != t3 && t1 != "eroare" && t3 != "eroare") {
             cout << "Eroare semantica la linia " << yylineno << ": Nu se pot compara tipuri diferite (" << t1 << " == " << t3 << ")" << endl;
-             // Facem un nod dummy cu tipul eroare pentru a nu crapa mai sus
              $$ = new ASTNode("eroare", "OTHER");
              if($1) delete $1; if($3) delete $3;
         }
@@ -533,10 +530,9 @@ e_bool: e EQ_GIFTS e {
     string t3 = ($3 != NULL) ? $3->type : "eroare";
 
     if(t1=="bool" && t3=="bool")
-     {$$ = new ASTNode("bool", "&&", $1, $3);} //am pus astea si acum merge if(v1 && v2)
+     {$$ = new ASTNode("bool", "&&", $1, $3);}
     else{
         std::cout<<"Eroare semantica la linia "<< yylineno <<": Operatorul 'and' cere tipul bool, dar a primit "<<t1<<" si "<<t3<<endl;
-        //facem nod dummy ca sa nu crape apoi
         $$=new ASTNode("eroare","OTHER");
     }
   }
@@ -558,7 +554,7 @@ e_bool: e EQ_GIFTS e {
         $$=new ASTNode("eroare","OTHER");
     }
   }
-  | e_bool DECORATIUNI_OR_COLINDE e_bool { // toate combinatiile pt or ca sa fie posibil id (de bool )or nice 
+  | e_bool DECORATIUNI_OR_COLINDE e_bool { 
      $$ = new ASTNode("bool", "||", $1, $3);
   }
   | e DECORATIUNI_OR_COLINDE e {
@@ -753,30 +749,32 @@ $$ = new ASTNode(v, "int_gift");
           }
           
   | call_fn { $$ = $1; } 
-  |NEW_BC ID_BC '(' { SymTableHelp::ClearCallArg(); } ')' {
-      // Cazul constructor fara parametri: create_gift A()
-      if(SymTableHelp::CheckClassExists(*$2)) {
-         // Verificam daca exista constructor fara parametri
-         // Putem refolosi logica de la functii daca constructorul e salvat ca functie
-         // Sau pur si simplu returnam tipul clasei daca nu avem verificari stricte pe constructori
-         
-         // Aici presupunem ca verificarea parametrilor se face in CheckFunctionCall sau similar
-         // Daca constructorul e tratat ca o functie cu numele clasei:
-        // SymTableHelp::currentFuncName = *$2; // Setam context pt verificare (hacky dar depinde de implementarea ta)
-         // Sau pur si simplu returnam nodul:
-         $$ = new ASTNode(*$2, "CONSTRUCTOR_CALL"); // Returneaza un obiect de tipul NumeClasa
+  |NEW_BC ID_BC '(' ')' {
+      SymTableHelp::ClearCallArg();
+        bool clasaExista = SymTableHelp::CheckClassExists(*$2);
+        bool apelValid = false;
+
+    if(clasaExista)  {
+      apelValid = SymTableHelp::CheckConstructorCall(*$2); 
+    }  
+
+      if(clasaExista && apelValid) {
+         $$ = new ASTNode(*$2, "CONSTRUCTOR_CALL");
       } else {
          $$ = new ASTNode("eroare", "OTHER");
       }
       delete $2;
   }
   | NEW_BC ID_BC '(' { SymTableHelp::ClearCallArg(); } wishlist ')' {
-      // Cazul constructor cu parametri: create_gift A(10, 20)
-      if(SymTableHelp::CheckClassExists(*$2)) {
-          // Aici ar trebui sa verifici daca parametrii din wishlist se potrivesc cu constructorul clasei *$2
-          // De exemplu: SymTableHelp::CheckConstructorCall(*$2); 
+        bool clasaExista = SymTableHelp::CheckClassExists(*$2);
+        bool apelValid = false;
+
+    if(clasaExista)  {
+      apelValid = SymTableHelp::CheckConstructorCall(*$2); 
+    }  
+      if(clasaExista && apelValid) {
           
-          $$ = new ASTNode(*$2, "CONSTRUCTOR_CALL"); // Returneaza tipul clasei
+          $$ = new ASTNode(*$2, "CONSTRUCTOR_CALL"); 
       } else {
           $$ = new ASTNode("eroare", "OTHER");
       }
@@ -784,11 +782,8 @@ $$ = new ASTNode(v, "int_gift");
   }
   
   ;
-// aici avem mesaje cu eroare semantica in SymTableHelp cica si daca punem si aici se dubleaza
 // function calls returneaza ASTNode cu root OTHER
 call_fn: ID_BC '(' {SymTableHelp::ClearCallArg(); } wishlist ')' { 
-      //bool exists = SymTableHelp::CheckId(*$1);  
-      //Facem aici modificari ca sa se afiseze mesajul corect pt cand nu e declarata o functie
       bool exists = SymTableHelp::CheckFunctionExists(*$1);
       bool checkParams = false;
       if(exists){
@@ -829,7 +824,6 @@ call_fn: ID_BC '(' {SymTableHelp::ClearCallArg(); } wishlist ')' {
                  string tip = SymTableHelp::GetClassMemberType(*$1,*$3);
                  $$ = new ASTNode(tip, "OTHER");
               }else{
-               //? std::cout<<"Eroare semantica la linia "<<yylineno<< ": Metoda nu exista sau argumente gresite";
                 $$ = new ASTNode("eroare", "OTHER");
               }
           }

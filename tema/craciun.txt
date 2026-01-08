@@ -37,10 +37,10 @@ class Spiridus [
     ]
 ]
 
-create_gift Animal lex;
-create_gift Animal bizon;
-create_gift Spiridus iulia;
-create_gift Spiridus irina;
+ Animal lex;
+ Animal bizon;
+ Spiridus iulia;
+ Spiridus irina;
 
 str_letter mesaj_grinch;
 str_letter status;

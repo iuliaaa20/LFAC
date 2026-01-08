@@ -26,3 +26,34 @@ Scope: Func_B
 Scope: Func_g
   Parent: Class_B
    Name: z  | Kind: parametru  | Type: int_gift  | Val: 0
+Scope: Func_f
+  Parent: Class_B
+   Name: z  | Kind: parametru  | Type: int_gift  | Val: 0
+Scope: Class_B
+  Parent: global
+   Name: B  | Kind: functie  | Type: constructor  | Val:  (Object/Undef)
+   Name: b  | Kind: variabila  | Type: int_gift  | Val: 0
+   Name: bb  | Kind: variabila  | Type: int_gift  | Val: 0
+   Name: f  | Kind: functie  | Type: int_gift  | Val: 0
+   Name: g  | Kind: functie  | Type: int_gift  | Val: 0
+Scope: Func_bfunc
+  Parent: global
+   Name: b  | Kind: parametru  | Type: bool  | Val: false
+   Name: s  | Kind: parametru  | Type: str_letter  | Val: 
+Scope: Main
+  Parent: global
+  [Empty scope]
+Scope: global
+   Name: A  | Kind: clasa  | Type: definitie_clasa  | Val:  (Object/Undef)
+   Name: B  | Kind: clasa  | Type: definitie_clasa  | Val:  (Object/Undef)
+   Name: b1  | Kind: variabila  | Type: bool  | Val:  (Object/Undef)
+   Name: b2  | Kind: variabila  | Type: bool  | Val: true
+   Name: bfunc  | Kind: functie  | Type: str_letter  | Val: 
+   Name: f  | Kind: functie  | Type: int_gift  | Val: 0
+   Name: fx  | Kind: variabila  | Type: float_snow  | Val: true
+   Name: ix  | Kind: variabila  | Type: int_gift  | Val: 10
+   Name: oba  | Kind: variabila  | Type: A  | Val:  (Object/Undef)
+   Name: obb  | Kind: variabila  | Type: B  | Val:  (Object/Undef)
+   Name: s  | Kind: variabila  | Type: str_letter  | Val: test
+   Name: x  | Kind: variabila  | Type: int_gift  | Val: 0
+   Name: z  | Kind: variabila  | Type: int_gift  | Val: 0

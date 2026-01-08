@@ -48,7 +48,7 @@
 
 [0-9]+\.[0-9]+  { yylval.Str = new std::string(yytext); return FLOAT_NR; }
 [0-9]+          { yylval.Str = new std::string(yytext); return NR; }
-\"[^"]*\"      { yylval.Str = new std::string(yytext+1,strlen(yytext)-2); return STRING_VAL; } // ca sa elimine ghilimelele cand se folosesc string uri
+\"[^"]*\"      { yylval.Str = new std::string(yytext+1,strlen(yytext)-2); return STRING_VAL; } 
 [ \t] ;
 \n { yylineno++; }
 . { return yytext[0]; }

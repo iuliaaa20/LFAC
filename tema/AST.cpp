@@ -180,7 +180,7 @@ Val ASTNode::eval(SymTable* table) {
 
     if (root == "PRINT") {
         string eText = left->my_to_string();
-        cout << "Print(" << eText << ") -> ";
+        //cout << "Print(" << eText << ") -> ";
 
         Val res = left->eval(table);
         

@@ -14,7 +14,6 @@ class A [
     ]
 ]
 
-// Functia globala f
 elf int_gift f ^ int_gift z ^ [
     int_gift x; int_gift b;
     x = 5; b = 10;
@@ -30,7 +29,6 @@ class B [
     int_gift b;
     int_gift bb;
 
-    // Constructorul clasei B
     elf B ^ ^ [
         own->b = 5;
         own->bb = 10; 
@@ -59,18 +57,15 @@ elf str_letter bfunc ^ bool b, str_letter s ^ [
     else { return "bau"; }
 ]
 
-// Variabile globale declarate inainte de main
 float_snow fx;
 str_letter s;
 int_gift ix;
 bool b1, b2;
 
-// Instantiem obiectele globale
 B obb; 
  A oba; 
 
 begin_xmas
-       // Initializare explicita (apelam constructorii)
        oba= create_gift A();
        obb=create_gift B();
        
@@ -86,7 +81,6 @@ begin_xmas
        ix = 10;
        
        // Nota: Am inlocuit oba.f(10) cu oba->g(10) (A nu are f)
-       // Expresia complexa de calcul
        ix = ix + (ix + f(ix*4))*2 + oba->x * oba->y + oba->g(10) + obb->b * obb->bb ;  
        Print(ix);
 

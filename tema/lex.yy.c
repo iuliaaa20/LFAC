@@ -975,7 +975,7 @@ case 33:
 /* rule 33 can match eol */
 YY_RULE_SETUP
 #line 51 "limbaj.l"
-{ yylval.Str = new std::string(yytext+1,strlen(yytext)-2); return STRING_VAL; } // ca sa elimine ghilimelele cand se folosesc string uri
+{ yylval.Str = new std::string(yytext+1,strlen(yytext)-2); return STRING_VAL; } 
 	YY_BREAK
 case 34:
 YY_RULE_SETUP

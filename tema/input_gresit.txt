@@ -43,7 +43,7 @@ elf int_gift g^int_gift z^ [
 
 elf int_gift f^int_gift z^ [
       if(z > 4) {
-          int_gift var;
+  //        int_gift var;
            var = 0;
            return var+5;
       }
@@ -95,12 +95,3 @@ Print(f(ix,fx,nice,nice));
        oba->zzz = 100;
        oba->x = oba->x + oba->fl(ix);
     end_xmas
-
-
-
-
-
-
-
-
-

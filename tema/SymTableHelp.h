@@ -36,6 +36,7 @@ class SymTableHelp{
         static bool CheckFunctionExists(string name);
         static bool CheckClassExists(string name);
         static void CheckConstructorName(string name);
+        static bool CheckConstructorCall(string className);
         static bool CheckOwnMember(string memberName);
         static string GetClassMemberTypeFromCurrentScope(string memberName);
         
