@@ -1,0 +1,106 @@
+
+class A [
+int_gift x;
+int_gift y;
+float_snow z;
+
+elf A ^^ [
+   own->x = 19;
+   y = 90;
+]
+
+elf int_gift g ^int_gift z^ [
+     
+   return zzz * 100;]
+
+
+elf float_snow f ^int_gift x^ [
+  if (x == 20) {
+     return 10.0;
+  }
+  return 20.0;
+]
+]
+
+elf int_gift f ^int_gift z, float_snow x, bool b^ [                    
+if (b == nice and x > 1.0){
+	return z * 10;
+}
+return z;
+]
+
+class B [  
+int_gift b;
+int_gift bb;
+elf B^ ^ [ 
+   own->b = 5;
+   own->bb = 10; 
+]
+
+elf int_gift g^int_gift z^ [ 
+    return z + b;
+]
+
+elf int_gift f^int_gift z^ [
+      if(z > 4) {
+          int_gift var;
+           var = 0;
+           return var+5;
+      }
+      return b + bb * z;
+      ]
+
+]
+
+elf str_letter bfunc^bool b, str_letter s^ [
+    if( b == nice ){
+       return s; 
+    }
+    else 
+        {return "bau";}
+]
+
+float_snow fx;
+int_gift x;
+int_gift z;
+str_letter s;
+int_gift ix;
+int_gift ix;
+bool b1,b2;
+B obb;  A oba; 
+
+begin_xmas      
+       zzz = 10;
+
+       fx = 65.0;
+       ix = 10;
+Print(fx - 65.0 + f(10,10.0,nice) );
+       fx = fx *10 + f(10,10.0,nice) + ix; 
+s = "test";
+b1 = nice;
+b2 = b1;
+Print(s + b1);
+b1 = b1 + b2;
+fx = b1 or b2;
+oba= create_gift A();
+obb= create_gift B();
+oba->x = oba->b + bfunc(b1,s);
+oba->x = obb->b + fx;
+
+Print(f(ix,fx,fx));
+Print(f(ix,fx,nice,nice));
+
+       oba->f(ix);
+       oba->g(fx);
+       oba->zzz = 100;
+       oba->x = oba->x + oba->fl(ix);
+    end_xmas
+
+
+
+
+
+
+
+
+

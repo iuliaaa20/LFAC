@@ -16,10 +16,9 @@ void yyerror(const char * s);
 
 %}
 
-/* Blocul code requires este necesar pentru ca header-ul sa stie de vector si ASTNode */
 %code requires {
     #include <vector>
-    #include "AST.h"
+    
 }
 
 %union {
@@ -28,17 +27,16 @@ void yyerror(const char * s);
     std::vector<class ASTNode*>* List;
 }; 
 
-%token BGIN END CLASS_BC  NEW_BC FN_BC ACCES VOID_BC OWN_BC // aici am pus void bc pt elf lenes
+%token BGIN END CLASS_BC  NEW_BC FN_BC ACCES VOID_BC OWN_BC 
 %token IF_BC ELSE_BC WHILE_BC RETURN_BC PRINT_BC 
 %token ASSIGN_GIFT ATELIER_AND_COR DECORATIUNI_OR_COLINDE EQ_GIFTS NEQ_GIFTS LE_GIFTS GE_GIFTS LT_GIFTS GT_GIFTS NOT_BC
 
 %token <Str> INT_BC FLOAT_BC STRING_BC BOOL_BC 
 %token <Str> ID_BC STRING_VAL BOOL_VAL_BC NR FLOAT_NR 
 
-/* Definim tipurile returnate de neterminali */
 %type <Str> type return_type 
 %type <Node> e e_bool call_fn statement 
-%type <List> statement_list 
+%type <List> statement_list fn_body_list
 
 
 %left DECORATIUNI_OR_COLINDE  
@@ -68,18 +66,21 @@ orice: orice elem
 elem : decl 
      | class_decl 
      | fn_decl
-     | statement // am adaugat ca sa putem asigna si in global scope
- 
      ;
 
 type : INT_BC    { SymTableHelp::SetType("int_gift");   $$ = new std::string("int_gift"); }
      | FLOAT_BC  { SymTableHelp::SetType("float_snow"); $$ = new std::string("float_snow"); }
      | STRING_BC { SymTableHelp::SetType("str_letter"); $$ = new std::string("str_letter"); }
      | BOOL_BC   { SymTableHelp::SetType("bool");       $$ = new std::string("bool"); }
-     | NEW_BC ID_BC {    
-      SymTableHelp::CheckClassExists(*$2);
-      SymTableHelp::SetType(*$2); 
-      $$ = new std::string(*$2);
+     | ID_BC {    
+          if (!SymTableHelp::CheckClassExists(*$1)) {
+              std::cout << "Eroare la linia " << yylineno << ": Tipul '" << *$1 << "' nu este definit (nu este o clasa)." << std::endl;
+              SymTableHelp::SetType("eroare");
+              $$ = new std::string("eroare");
+          } else {
+              SymTableHelp::SetType(*$1); 
+              $$ = new std::string(*$1);
+          }
       }
      | VOID_BC    {SymTableHelp::SetType("lenes");  $$=new std::string("lenes");}
  
@@ -87,7 +88,7 @@ type : INT_BC    { SymTableHelp::SetType("int_gift");   $$ = new std::string("in
  
 return_type : type ; 
 
-decl : type list_variabile ';' {delete $1;} ; // am pus delete aici sa prevenim memory leak
+decl : type list_variabile ';' {delete $1;} ; 
 
 list_variabile : ID_BC { SymTableHelp::AddVar(*$1, "variabila"); delete $1; }
                | list_variabile ',' ID_BC { SymTableHelp::AddVar(*$3, "variabila"); delete $3; }
@@ -121,8 +122,8 @@ header_constr: FN_BC ID_BC{
       }
       ;
 
-constr_decl : header_constr '^' list_param '^' {SymTableHelp::SaveParams();} '[' fn_body ']' {SymTableHelp::ExitScope();}
-            | header_constr '^' '^' {SymTableHelp::SaveParams();} '[' fn_body ']' {SymTableHelp::ExitScope();}
+constr_decl : header_constr '^' list_param '^' {SymTableHelp::SaveParams();} '[' fn_body_list ']' {SymTableHelp::ExitScope();}
+            | header_constr '^' '^' {SymTableHelp::SaveParams();} '[' fn_body_list ']' {SymTableHelp::ExitScope();}
             ;
 
 header_fn: FN_BC return_type ID_BC {
@@ -133,26 +134,37 @@ header_fn: FN_BC return_type ID_BC {
          }
          ;
 
-fn_decl : header_fn '^' list_param '^' { SymTableHelp::SaveParams(); }'[' fn_body ']' { SymTableHelp::ExitScope(); }
-        | header_fn '^' '^' { SymTableHelp::SaveParams(); } '[' fn_body ']' { SymTableHelp::ExitScope(); }
+fn_decl : header_fn '^' list_param '^' { SymTableHelp::SaveParams(); }'[' fn_body_list ']' { SymTableHelp::ExitScope(); }
+        | header_fn '^' '^' { SymTableHelp::SaveParams(); } '[' fn_body_list ']' { SymTableHelp::ExitScope(); }
         ;
 
 list_param : param 
            | list_param ',' param ;
 
-param : type ID_BC { SymTableHelp::AddParam(*$2); delete $1; delete $2;} ; // am pus delete si aici
+param : type ID_BC { SymTableHelp::AddParam(*$2); delete $1; delete $2;} ; 
 
+fn_body_list : { $$ = new std::vector<ASTNode*>(); }
+             | fn_body_list statement { 
+                 if ($2 != NULL) $1->push_back($2); 
+                 $$ = $1; 
+             }
+             | fn_body_list decl { 
+                 
+                 $$ = $1; 
+             }
+             ;
 
-fn_body : statement_list 
-        ;
-// declarations : declarations decl 
-//             |
-//             ;
+statement_list : { $$ = new std::vector<ASTNode*>(); }
+               | statement_list statement { 
+                   if ($2 != NULL) $1->push_back($2); 
+                   $$ = $1; 
+               }
+               ;
 
 
 main_bc : BGIN { SymTableHelp::EnterScope("Main"); } statement_list END 
                { 
-            // AICI SE FACE EXECUTIA AST 
+      
             if ($3 != NULL) {
                  for(ASTNode* n : *$3) 
                    if(n) n->eval(SymTableHelp::currentScope);
@@ -160,27 +172,17 @@ main_bc : BGIN { SymTableHelp::EnterScope("Main"); } statement_list END
             SymTableHelp::ExitScope(); 
         } ;
 
-statement_list : { $$ = new std::vector<ASTNode*>(); } 
-               | statement_list statement { 
-                   if ($2 != NULL) $1->push_back($2);
-                   $$ = $1;
-               }
-               | statement_list decl {$$=$1;}
-               ;
 
 statement : ID_BC ASSIGN_GIFT e ';' { 
           SymTableHelp::CheckId(*$1); 
           string tipSt=SymTableHelp::GetType(*$1);
-          // Verificam NULL pentru a preveni segfault daca expresia e gresita
+          
           string tipDr = ($3 != NULL) ? $3->type : "eroare"; 
 
           if(tipSt!=tipDr && tipDr!="eroare"){
             std::cout<<"Eroare semantica la linia "<<yylineno<<": Nu se poate atribui valoarea de tip "<<tipDr<<" variabilei "<<*$1<<" de tip "<<tipSt<<endl;
           }
-          
-          // CONSTRUIM NODUL DE ATRIBUIRE
-          // Trebuie sa recream nodul variabilei din stanga (pentru ca $1 e doar string)
-          // Constructor: ASTNode(tip, nume_var)
+
           ASTNode* leftNode = new ASTNode(tipSt, *$1);
           
           // Constructor General: ASTNode(tip, ROOT=":=", left, right)
@@ -293,7 +295,19 @@ statement : ID_BC ASSIGN_GIFT e ';' {
           | PRINT_BC '(' e_bool ')' ';'{
               $$ = new ASTNode("void", "PRINT", $3, NULL);
           } 
-          | call_fn ';'{$$=$1;}
+  
+         | call_fn ';' {
+             string tip = $1->type;
+             bool eLenes = (tip == "lenes" );
+             bool eTipBaza = (tip == "int_gift" || tip == "float_snow" || tip == "bool" || tip == "str_letter");
+        
+             if (!eLenes && eTipBaza) {
+             cout << "Eroare semantica la linia " << yylineno << ": O functie apelata ca instructiune trebuie sa fie de tip 'lenes' (void). Functia returneaza " << tip << endl;
+            
+        }
+
+        $$ = $1; 
+    }
           | RETURN_BC e ';' { // la returnuri am pus verificarea daca tipul functiei este si acela returnat si sunt tratate si cazurile cu 'lenes'
             std::string tipReturn=($2!=NULL)?$2->type:"eroare";
             std::string tipFct=SymTableHelp::GetType(SymTableHelp::currentFuncName);
@@ -580,15 +594,14 @@ e_bool: e EQ_GIFTS e {
       if(*$1 == "nice") v.bval = true; else v.bval = false; 
       v.tip = MY_BOOL; 
    
-      // Constructor Constanta
   $$ = new ASTNode(v, "bool");
       delete $1;
   }
   | NOT_BC e_bool { 
-      // Operator Unar (Copilul stang e expresia, drept e NULL)
+     
       $$ = new ASTNode("bool", "!", $2, NULL);
   }
-  | NOT_BC e{ // daca avem tot asa un id de valoare bool
+  | NOT_BC e{ 
     std::string t=($2!=NULL)? $2->type:"eroare";
     if(t=="bool"){
       $$=new ASTNode("bool","!",$2,NULL);
@@ -606,7 +619,7 @@ e : e '+' e {
       if(tipSt == tipDr)
       {
         if(tipSt == "int_gift" || tipSt == "float_snow" || tipSt == "str_letter"){
-           // Construim Nodul Adunare (+)
+         
           $$ = new ASTNode(tipSt, "+", $1, $3);
         }
         else{
@@ -686,20 +699,19 @@ e : e '+' e {
   | NR  {
       int val = stoi(*$1);
       Val v(val);
-      // Constructor Constanta
+      
 $$ = new ASTNode(v, "int_gift");
       delete $1; 
   }
   | FLOAT_NR {
       float val = stof(*$1);
       Val v(val);
-      // Constructor Constanta
+    
      $$ = new ASTNode(v, "float_snow");
       delete $1;
   }
   | STRING_VAL {
       Val v(*$1);
-      // Constructor Constanta
       $$ = new ASTNode( v,"str_letter");
       delete $1;
   }
@@ -707,7 +719,7 @@ $$ = new ASTNode(v, "int_gift");
         if(SymTableHelp::CheckId(*$1))
         {
           string tip = SymTableHelp::GetType(*$1);
-          // Constructor Variabila (Root = nume)
+         
           $$ = new ASTNode(tip, *$1);
         }
         else{
@@ -721,7 +733,7 @@ $$ = new ASTNode(v, "int_gift");
     if(SymTableHelp::CheckClassMember(*$1,*$3)){
        tip = SymTableHelp::GetClassMemberType(*$1,*$3);
     }
-    // Acces clasa -> Nod OTHER
+   
     $$ = new ASTNode(tip, "OTHER");
     delete $1; delete $3;
   }
@@ -741,6 +753,36 @@ $$ = new ASTNode(v, "int_gift");
           }
           
   | call_fn { $$ = $1; } 
+  |NEW_BC ID_BC '(' { SymTableHelp::ClearCallArg(); } ')' {
+      // Cazul constructor fara parametri: create_gift A()
+      if(SymTableHelp::CheckClassExists(*$2)) {
+         // Verificam daca exista constructor fara parametri
+         // Putem refolosi logica de la functii daca constructorul e salvat ca functie
+         // Sau pur si simplu returnam tipul clasei daca nu avem verificari stricte pe constructori
+         
+         // Aici presupunem ca verificarea parametrilor se face in CheckFunctionCall sau similar
+         // Daca constructorul e tratat ca o functie cu numele clasei:
+        // SymTableHelp::currentFuncName = *$2; // Setam context pt verificare (hacky dar depinde de implementarea ta)
+         // Sau pur si simplu returnam nodul:
+         $$ = new ASTNode(*$2, "CONSTRUCTOR_CALL"); // Returneaza un obiect de tipul NumeClasa
+      } else {
+         $$ = new ASTNode("eroare", "OTHER");
+      }
+      delete $2;
+  }
+  | NEW_BC ID_BC '(' { SymTableHelp::ClearCallArg(); } wishlist ')' {
+      // Cazul constructor cu parametri: create_gift A(10, 20)
+      if(SymTableHelp::CheckClassExists(*$2)) {
+          // Aici ar trebui sa verifici daca parametrii din wishlist se potrivesc cu constructorul clasei *$2
+          // De exemplu: SymTableHelp::CheckConstructorCall(*$2); 
+          
+          $$ = new ASTNode(*$2, "CONSTRUCTOR_CALL"); // Returneaza tipul clasei
+      } else {
+          $$ = new ASTNode("eroare", "OTHER");
+      }
+      delete $2;
+  }
+  
   ;
 // aici avem mesaje cu eroare semantica in SymTableHelp cica si daca punem si aici se dubleaza
 // function calls returneaza ASTNode cu root OTHER

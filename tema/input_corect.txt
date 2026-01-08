@@ -6,7 +6,7 @@ class A [
     elf A ^ ^ [
         own->x = 19;
         own->y = 90;
-        return 0; 
+        
     ]
 
     elf int_gift g ^ int_gift z ^ [
@@ -38,11 +38,11 @@ class B [
     ]
 
     elf int_gift g ^ int_gift z ^ [
-        create_gift A a; 
+        A a; 
         int_gift x;
         
         // Apelam constructorul manual pentru 'a'
-        a->A(); 
+        a= create_gift A(); 
         x = 100; 
         return x + a->x + z;
     ]
@@ -66,13 +66,13 @@ int_gift ix;
 bool b1, b2;
 
 // Instantiem obiectele globale
-create_gift B obb; 
-create_gift A oba; 
+B obb; 
+ A oba; 
 
 begin_xmas
        // Initializare explicita (apelam constructorii)
-       oba->A();
-       obb->B();
+       oba= create_gift A();
+       obb=create_gift B();
        
        fx = 65.0;
        fx = fx + 10.0 * fx - 65.0;
@@ -95,14 +95,17 @@ begin_xmas
        
        b2 = nice;
        b1 = b2 or not b2;
+     
        Print(bfunc(b1, "s"));
 
        // Comparatii
        Print(f(ix) + 5 > 5 + obb->b);
+          
        Print(ix+5 > ix+6);
        Print(b1 == naughty); 
        Print(oba->x == oba->y);
-
+        
+       
        // Expresie booleana complexa (am corectat iy cu ix)
        Print(ix+5 > ix+6 or (b1 == naughty and f(ix) + 5 > 5 + obb->b) or oba->x == oba->y);
 
