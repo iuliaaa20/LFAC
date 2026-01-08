@@ -1,49 +1,104 @@
-//int_gift pret_cadou1;
-//pret_cadou1=10;
-//reate_gift Spiridus iulia;
+//Scenariu de Craciun
+
+//Clasa pentru animalutele Mosului
+class Animal[
+    str_letter nume;
+    str_letter specie;
+    bool poate_zbura;
+
+    elf Animal ^str_letter name, str_letter species^ [
+        own->nume=name;
+        own->specie=species;
+        Print("S-a adoptat animalul cu numele " + name + " din specia " + species);
+        return 0;
+    ]
+]
+
+//Clasa pentru spiridusii de la atelierul de programare
+int_gift linii_total;
 
 class Spiridus [
-    str_letter nume;
-    bool are_task;
+    float_snow salariu;
+    int_gift linii_cod_scrise;
 
-    elf bool impacheteaza ^ str_letter cadou ^ [
-        bool impachetat;
-        impachetat=nice;
+    elf Spiridus ^  ^ [
+        own->linii_cod_scrise=0;
+        Print("A fost angajat un Spiridus Junior!");
+        return 0;
+    ]
 
-        if(are_task==nice)
-        {
-            impachetat=naughty;
+    elf lenes compileaza_cadou ^ float_snow ore^[
+        if (own->linii_cod_scrise==0) {
+            Print("Spiridusul a fost lenes...");
+        }else{
+            salariu=salariu+ ore*25.0; //de la 25 decembrie
+            Print("Spiridusul a scris cod pentru cadouri.");
         }
-        return impachetat;
     ]
 ]
 
-elf bool verificaFonduri ^ float_snow buget, int_gift pret ^ [
-    if (buget >= pret) { // EROARE
-        return nice;
-    } else {
-        return naughty;
+create_gift Animal lex;
+create_gift Animal bizon;
+create_gift Spiridus iulia;
+create_gift Spiridus irina;
+
+str_letter mesaj_grinch;
+str_letter status;
+str_letter nume;
+
+elf str_letter verificare_zbor ^ str_letter specie, str_letter nume ^ [
+
+    if(specie=="Ren" and not (nume == "Bizon")){
+        return "Admis la sanie";
     }
-]
-create_gift piridus irina;
 
-class Copil [
-    str_letter nume;
-     int_gift varsta;
-     bool cuminte;
-  
-    elf int_gift sub10ani ^ int_gift varsta, float_snow buget ^
-    [ if(varsta<10)
-        {return nice;} //EROARE
-        else {return naughty;}
-    ]
-    elf int_gift sub10ani ^ int_gift varsta, float_snow buget ^
-    [ if(varsta<10)
-        {return nice;} //EROARE
-        else {return naughty;}
-    ]
-    
+    if(nume=="Bizon"){
+        return "Eroare de sintaxa: bison parseaza, nu zboara!";
+    }
+    return "Animal neidentificat";
 ]
-
+ 
 begin_xmas
+
+linii_total=0;
+Print("Cu 2 zile inainte de Craciun...");
+
+lex->Animal("Lex","Ren"); 
+//Eroare la numarul de parametri! Cum sa stim ce e Bizon?
+//bison->Animal("Bizon");
+bizon->Animal("Bizon","Bizon");
+
+iulia->Spiridus();
+irina->Spiridus();
+
+Print(" ");
+Print("La inspectia saniei, care se pregatea de zbor...");
+
+Print("Check Lex: ");
+nume="Lex";
+status=verificare_zbor("Ren","Lex");
+status=nume + " e gata de zbor";
+Print("Rezultat Lex: " + status);
+
+Print("Check Bizon: ");
+status=verificare_zbor("Ren","Bizon");
+Print("Rezultat Bizon: "+ status);
+
+Print(" ");
+Print("La dezvoltarea software a cadourilor...");
+iulia->compileaza_cadou(10.0);
+irina->compileaza_cadou(10.0);
+
+linii_total=500;
+
+Print("Total linii de cod scrise azi: ");
+Print(linii_total);
+
+if(status=="Eroare de sintaxa: bison parseaza, nu zboara!"){
+    mesaj_grinch="Grinch: Cat ei verifica sania e momentul sa sterg cateva linii din codul spiridusilor!";
+    Print(mesaj_grinch);
+}else{
+    Print("Grinch a uitat sa strice Craciunul");
+}
+
 end_xmas
